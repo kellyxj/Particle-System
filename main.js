@@ -79,3 +79,11 @@ function main() {
   };
   tick();		
 }
+
+function initVertexBuffer(gl) {
+    return n;
+}
+
+function drawAll(gl, n, currentAngle, modelMatrix, u_ModelMatrix, mvpMatrix, u_MvpMatrix) {
+
+}
