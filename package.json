@@ -1,0 +1,26 @@
+{
+  "name": "particle-system",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kellyxj/Particle-System.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kellyxj/Particle-System/issues"
+  },
+  "homepage": "https://github.com/kellyxj/Particle-System#readme",
+  "dependencies": {
+    "browserify": "^17.0.0",
+    "glslify": "^7.1.1"
+  },
+  "browserify": {
+    "transform": ["glslify"]
+  }
+}
