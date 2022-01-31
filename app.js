@@ -1,8 +1,9 @@
+(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 var glsl = require("glslify");
-var VSHADER_SOURCE = glsl.file("./shaders/vertexShader.vert");
+var VSHADER_SOURCE = glsl(["#define GLSLIFY 1\nuniform mat4 u_ModelMatrix;\nuniform mat4 u_MvpMatrix;\n  attribute vec4 a_Position;\n  varying vec4 v_Color;\n  void main() {\n    gl_Position = u_MvpMatrix * u_ModelMatrix * (a_Position);\n    gl_PointSize = 10.0;\n    v_Color = vec4(1.0, 1.0, 1.0, 1.0);\n}"]);
 
 // Fragment shader program----------------------------------
-var FSHADER_SOURCE = glsl.file("./shaders/fragmentShader.frag");
+var FSHADER_SOURCE = glsl(["//  #ifdef GL_ES\nprecision mediump float;\n#define GLSLIFY 1\n//  #endif GL_ES \n  varying vec4 v_Color;\n  void main() {\n    gl_FragColor = v_Color;\n  }"]);
 
 var partSys = new ParticleSystem(false);
 
@@ -100,6 +101,8 @@ function drawAll(gl, g_timeStep, modelMatrix, u_ModelMatrix, mvpMatrix, u_MvpMat
   gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
   gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
 
+  partSys.print();
+
   partSys.applyForces(partSys.s1, partSys.forces);  // find current net force on each particle
   partSys.dotFinder(partSys.s1dot, partSys.s1); // find time-derivative s1dot from s1;
   partSys.solver(g_timeStep);         // find s2 from s1 & related states.
@@ -110,3 +113,16 @@ function drawAll(gl, g_timeStep, modelMatrix, u_ModelMatrix, mvpMatrix, u_MvpMat
 }
 
 main();
+},{"glslify":2}],2:[function(require,module,exports){
+module.exports = function(strings) {
+  if (typeof strings === 'string') strings = [strings]
+  var exprs = [].slice.call(arguments,1)
+  var parts = []
+  for (var i = 0; i < strings.length-1; i++) {
+    parts.push(strings[i], exprs[i] || '')
+  }
+  parts.push(strings[i])
+  return parts.join('')
+}
+
+},{}]},{},[1]);
