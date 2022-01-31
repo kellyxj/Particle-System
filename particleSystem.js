@@ -50,6 +50,7 @@ class ParticleSystem {
         this.FSIZE;
         this.vboID;
         this.a_PositionID;
+        this.vboBox = new VBObox();
     }
 
     add(stateVec1, stateVec2) {
@@ -61,6 +62,10 @@ class ParticleSystem {
             stateVec1[i].xVel += stateVec2[i].xVel;
             stateVec1[i].yVel += stateVec2[i].yVel;
             stateVec1[i].zVel += stateVec2[i].zVel;
+
+            stateVec1[i].xfTot += stateVec2[i].xfTot;
+            stateVec1[i].yfTot += stateVec2[i].yfTot;
+            stateVec1[i].zfTot += stateVec2[i].zfTot;
         }
     }
 
@@ -78,16 +83,20 @@ class ParticleSystem {
 
     init(gl, numParticles) {
         this.nParticles = numParticles;
-        const vertexArray = new Float32Array(this.nParticles * 4);
+        const vertexArray = new Float32Array(this.nParticles * 7);
         for(var i = 0; i < numParticles; i++) {
             var p = new Particle();
             p.setRandomPosition();
             p.setRandomVelocity();
             
-            vertexArray[4*i] = p.xPos;
-            vertexArray[4*i+1] = p.yPos;
-            vertexArray[4*i+2] = p.zPos;
-            vertexArray[4*i+3] = p.wPos;
+            vertexArray[7*i] = p.xPos;
+            vertexArray[7*i+1] = p.yPos;
+            vertexArray[7*i+2] = p.zPos;
+            vertexArray[7*i+3] = p.wPos;
+            vertexArray[7*i+4] = p.colorR;
+            vertexArray[7*i+5] = p.colorG;
+            vertexArray[7*i+6] = p.colorB;
+
             this.s1.push(p);
 
             var q = new Particle();
@@ -100,30 +109,7 @@ class ParticleSystem {
         const box = new Box();
         this.limits.push(box);
 
-        this.FSIZE = vertexArray.BYTES_PER_ELEMENT;
-        this.vboID = gl.createBuffer();
-        if (!this.vboID) {
-            console.log('PartSys.init() Failed to create the VBO object in the GPU');
-            return -1;
-        }
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vboID);
-        gl.bufferData(gl.ARRAY_BUFFER, vertexArray, gl.DYNAMIC_DRAW);
-
-        this.a_PositionID = gl.getAttribLocation(gl.program, 'a_Position');
-        if(this.a_PositionID < 0) {
-            console.log('PartSys.init() Failed to get the storage location of a_Position');
-            return -1;
-        }
-        
-        gl.vertexAttribPointer(this.a_PositionID, 
-            4,  // # of values in this attrib (1,2,3,4) 
-            gl.FLOAT, // data type (usually gl.FLOAT)
-            false,    // use integer normalizing? (usually false)
-            4*this.FSIZE,  // Stride: #bytes from 1st stored value to next one
-            0); // Offset; #bytes from start of buffer to 
-                      // 1st stored attrib value we will actually use.
-    // Enable this assignment of the bound buffer to the a_Position variable:
-         gl.enableVertexAttribArray(this.a_PositionID);
+        this.vboBox.init(gl, vertexArray, this.nParticles);
     }
 
     applyForces(s, forceList) {
@@ -134,11 +120,7 @@ class ParticleSystem {
         }
         for(const particle of s) {
             for(const force of forceList) {
-                if(force.forceType == forceTypes.earthGrav) {
-                    particle.xfTot += particle.mass * force.gravConst * force.down.elements[0];
-                    particle.yfTot += particle.mass * force.gravConst * force.down.elements[1];
-                    particle.zfTot += particle.mass * force.gravConst * force.down.elements[2];
-                }
+                force.applyForce(particle);
             }
         }
     }
@@ -159,12 +141,6 @@ class ParticleSystem {
         const sM = [];
         for(let i = 0; i < this.nParticles; i++) {
             const p = new Particle();
-            p.xPos = 0;
-            p.yPos = 0;
-            p.zPos = 0;
-            p.xVel = 0;
-            p.yVel = 0;
-            p.zVel = 0;
             sM.push(p);
         }
         this.add(sM, this.s1);
@@ -180,89 +156,28 @@ class ParticleSystem {
         for(let i = 0; i < this.s2.length; i++) {
             for(const limit of this.limits) {
                 const particle = this.s2[i];
-                if(particle.xPos < limit.xMin) {
-                    particle.xPos = limit.xMin;
-                    particle.xVel = this.s1[i].xVel;
-                    if(particle.xVel < 0) {
-                        particle.xVel = -particle.xVel * limit.Kresti;
-                    }
-                    else {
-                        particle.xVel = particle.xVel * limit.Kresti;
-                    }
-                }
-                if(particle.yPos < limit.yMin) {
-                    particle.yPos = limit.yMin;
-                    particle.yVel = this.s1[i].yVel;
-                    if(particle.yVel < 0) {
-                        particle.yVel = -particle.yVel  * limit.Kresti;
-                    }
-                    else {
-                        particle.xVel = particle.yVel * limit.Kresti;
-                    }
-                }
-                if(particle.zPos < limit.zMin) {
-                    particle.zPos = limit.zMin;
-                    particle.zVel = this.s1[i].zVel;
-                    if(particle.zVel < 0) {
-                        particle.zVel = -particle.zVel  * limit.Kresti;
-                    }
-                    else {
-                        particle.xVel = particle.zVel * limit.Kresti;
-                    }
-                }
-                if(particle.xPos > limit.xMax) {
-                    particle.xPos = limit.xMax;
-                    particle.xVel = this.s1[i].xVel;
-                    if(particle.xVel > 0) {
-                        particle.xVel = -particle.xVel  * limit.Kresti;
-                    }
-                    else {
-                        particle.xVel = particle.xVel * limit.Kresti;
-                    }
-                }
-                if(particle.yPos > limit.yMax) {
-                    particle.yPos = limit.yMax;
-                    particle.yVel = this.s1[i].yVel;
-                    if(particle.yVel > 0) {
-                        particle.yVel = -particle.yVel  * limit.Kresti;
-                    }
-                    else {
-                        particle.xVel = particle.yVel * limit.Kresti;
-                    }
-                }
-                if(particle.zPos > limit.zMax) {
-                    particle.zPos = limit.zMax;
-                    particle.zVel = this.s1[i].zVel;
-                    if(particle.zVel > 0) {
-                        particle.zVel = -particle.zVel  * limit.Kresti;
-                    }
-                    else {
-                        particle.xVel = particle.zVel * limit.Kresti;
-                    }
-                }
+                const particlePrev = this.s1[i];
+                limit.applyLimit(particlePrev, particle);
             }
         }
     }
 
-    render(gl) {
-        const vertexArray = new Float32Array(this.nParticles*4);
+    render(mvpMatrix) {
+        const vertexArray = new Float32Array(this.nParticles*7);
         for(let i = 0; i < this.s1.length; i++) {
-            vertexArray[4*i] = this.s1[i].xPos;
-            vertexArray[4*i+1] = this.s1[i].yPos;
-            vertexArray[4*i+2] = this.s1[i].zPos;
-            vertexArray[4*i+3] = this.s1[i].wPos;
+            vertexArray[7*i] = this.s1[i].xPos;
+            vertexArray[7*i+1] = this.s1[i].yPos;
+            vertexArray[7*i+2] = this.s1[i].zPos;
+            vertexArray[7*i+3] = this.s1[i].wPos;
+            vertexArray[7*i+4] = this.s1[i].colorR;
+            vertexArray[7*i+5] = this.s1[i].colorG;
+            vertexArray[7*i+6] = this.s1[i].colorB;
         }
-        gl.bufferSubData( 
-            gl.ARRAY_BUFFER,  // specify the 'binding target': either
-                    //    gl.ARRAY_BUFFER (VBO holding sets of vertex attribs)
-                    // or gl.ELEMENT_ARRAY_BUFFER (VBO holding vertex-index values)
-            0,      // offset: # of bytes to skip at the start of the VBO before 
-                      // we begin data replacement.
-            vertexArray); // Float32Array data source.
-
-        gl.drawArrays(gl.POINTS,          // mode: WebGL drawing primitive to use 
-            0,                  // index: start at this vertex in the VBO;
-            this.nParticles); 
+        this.vboBox.switchToMe();
+        this.vboBox.adjust(mvpMatrix);
+        this.vboBox.vboContents = vertexArray;
+        this.vboBox.reload();
+        this.vboBox.draw();
     }
 
     print() {

@@ -24,6 +24,8 @@ var panAngle = 0;
 var tiltAngle = 0;
 var inverted = false;
 
+var worldBox = new VBObox();
+
 function main() {
 //==============================================================================
   // Retrieve <canvas> element
@@ -225,16 +227,12 @@ function drawAll(gl, g_timeStep, modelMatrix, u_ModelMatrix, mvpMatrix, u_MvpMat
     eyePosition[1]+Math.sin(-Math.PI*panAngle/180)*Math.cos(Math.PI*tiltAngle/180), //y value of look at point
     eyePosition[2]+Math.sin(Math.PI*tiltAngle/180), //z value look at point
     0, 0, inverted? -1: 1); //up vector
-  gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
-  gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
-
-  partSys.print();
 
   partSys.applyForces(partSys.s1, partSys.forces);  // find current net force on each particle
   partSys.dotFinder(partSys.s1dot, partSys.s1); // find time-derivative s1dot from s1;
   partSys.solver(g_timeStep);         // find s2 from s1 & related states.
   partSys.doConstraints();  // Apply all constraints.  s2 is ready!
-  partSys.render(gl);         // transfer current state to VBO, set uniforms, draw it!
+  partSys.render(mvpMatrix);         // transfer current state to VBO, set uniforms, draw it!
   partSys.swap();  
   
 }
