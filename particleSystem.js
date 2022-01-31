@@ -128,6 +128,11 @@ class ParticleSystem {
 
     applyForces(s, forceList) {
         for(const particle of s) {
+            particle.xfTot = 0;
+            particle.yfTot = 0;
+            particle.zfTot = 0;
+        }
+        for(const particle of s) {
             for(const force of forceList) {
                 if(force.forceType == forceTypes.earthGrav) {
                     particle.xfTot += particle.mass * force.gravConst * force.down.elements[0];

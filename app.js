@@ -42,7 +42,134 @@ function main() {
     return;
   }
 
-  
+    //camera controls
+    document.addEventListener("keydown", (e) => {
+      console.log(e.key)
+        if(e.key === "w") {
+        eyePosition[0] += 0.1*Math.cos(Math.PI*panAngle/180)*Math.cos(Math.PI*tiltAngle/180);
+        eyePosition[1] += 0.1*Math.sin(-Math.PI*panAngle/180)*Math.cos(Math.PI*tiltAngle/180);
+        eyePosition[2] += 0.1*Math.sin(Math.PI*tiltAngle/180);
+    
+      }
+      if(e.key === "s") {
+        eyePosition[0] -= 0.1*Math.cos(Math.PI*panAngle/180)*Math.cos(Math.PI*tiltAngle/180);
+        eyePosition[1] -= 0.1*Math.sin(-Math.PI*panAngle/180)*Math.cos(Math.PI*tiltAngle/180);
+        eyePosition[2] -= 0.1*Math.sin(Math.PI*tiltAngle/180);
+    
+      }
+      if(e.key === "a") {
+        if(!inverted) {
+          eyePosition[0] += 0.1*Math.sin(Math.PI*panAngle/180)*Math.cos(Math.PI*tiltAngle/180);
+          eyePosition[1] += 0.1*Math.cos(-Math.PI*panAngle/180)*Math.cos(Math.PI*tiltAngle/180);	
+        }
+        else {
+          eyePosition[0] -= 0.1*Math.sin(Math.PI*panAngle/180)*Math.cos(Math.PI*tiltAngle/180);
+          eyePosition[1] -= 0.1*Math.cos(-Math.PI*panAngle/180)*Math.cos(Math.PI*tiltAngle/180);
+        }
+      }
+      if(e.key === "d") {
+        if(!inverted) {
+          eyePosition[0] -= 0.1*Math.sin(Math.PI*panAngle/180)*Math.cos(Math.PI*tiltAngle/180);
+          eyePosition[1] -= 0.1*Math.cos(-Math.PI*panAngle/180)*Math.cos(Math.PI*tiltAngle/180);	
+        }
+        else {
+          eyePosition[0] += 0.1*Math.sin(Math.PI*panAngle/180)*Math.cos(Math.PI*tiltAngle/180);
+          eyePosition[1] += 0.1*Math.cos(-Math.PI*panAngle/180)*Math.cos(Math.PI*tiltAngle/180);
+        }
+      }
+      if(e.key === "e") {
+        if(!inverted) {
+          eyePosition[0] -= 0.1*Math.cos(Math.PI*panAngle/180)*Math.sin(Math.PI*tiltAngle/180);
+          eyePosition[1] -= 0.1*Math.sin(-Math.PI*panAngle/180)*Math.sin(Math.PI*tiltAngle/180);
+          eyePosition[2] += 0.1*Math.cos(Math.PI*tiltAngle/180);
+        }
+        else {
+          eyePosition[0] += 0.1*Math.cos(Math.PI*panAngle/180)*Math.sin(Math.PI*tiltAngle/180);
+          eyePosition[1] += 0.1*Math.sin(-Math.PI*panAngle/180)*Math.sin(Math.PI*tiltAngle/180);
+          eyePosition[2] -= 0.1*Math.cos(Math.PI*tiltAngle/180);
+        }
+      }
+      if(e.key === "q") {
+        if(!inverted) {
+          eyePosition[0] += 0.1*Math.cos(Math.PI*panAngle/180)*Math.sin(Math.PI*tiltAngle/180);
+          eyePosition[1] += 0.1*Math.sin(-Math.PI*panAngle/180)*Math.sin(Math.PI*tiltAngle/180);
+          eyePosition[2] -= 0.1*Math.cos(Math.PI*tiltAngle/180);
+        }
+        else {
+          eyePosition[0] -= 0.1*Math.cos(Math.PI*panAngle/180)*Math.sin(Math.PI*tiltAngle/180);
+          eyePosition[1] -= 0.1*Math.sin(-Math.PI*panAngle/180)*Math.sin(Math.PI*tiltAngle/180);
+          eyePosition[2] += 0.1*Math.cos(Math.PI*tiltAngle/180);
+        }
+      }
+      if(e.key === "ArrowUp") {
+        if(!inverted) {
+          if(tiltAngle + 3 > 90) {
+            panAngle = panAngle+=180;
+            inverted = true;
+            console.log("inverted?" + inverted)
+          }
+          else{
+            tiltAngle += 1;
+          }
+        }
+        if(inverted) {
+          if(tiltAngle - 3 < - 90) {
+            panAngle += 180;
+            inverted = false;
+            console.log("inverted?" + inverted)
+          }
+          else{
+            tiltAngle -=1;
+          }
+        }
+        console.log(tiltAngle);
+    
+      }
+      if(e.key === "ArrowDown") {
+        if(!inverted) {
+          if(tiltAngle - 3 < -90) {
+            panAngle += 180;
+            inverted = true;
+            console.log("inverted?" + inverted)
+          }
+          else{
+            tiltAngle -= 1;
+          }
+        }
+        if(inverted) {
+          if(tiltAngle + 3 > 90) {
+            panAngle+=180;
+            inverted = false;
+            console.log("inverted?" + inverted)
+          }
+          else{
+            tiltAngle += 1;
+          }
+        }
+        console.log(tiltAngle);
+    
+      }
+      if(e.key === "ArrowLeft") {
+        if(inverted) {
+          panAngle+= 1;
+        }
+        else{
+          panAngle-=1;
+        }
+        console.log(panAngle);
+    
+      }
+      if(e.key === "ArrowRight") {
+        if(inverted) {
+          panAngle-= 1;
+        }
+        else{
+          panAngle+=1;
+        }
+        console.log(panAngle);
+    
+      }
+    });
 
   // Specify the color for clearing <canvas>
   gl.clearColor(0.0, 0.0, 0.0, 1.0);

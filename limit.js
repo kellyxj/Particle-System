@@ -17,5 +17,5 @@ class Box extends CLimit {
     yMax = .5;
     zMin = -.5;   
     zMax = .5;
-    Kresti = .98;
+    Kresti = 1;
 }
