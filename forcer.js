@@ -2,7 +2,8 @@ const forceTypes = {
     none: 0,
     earthGrav: 1,
     spring:2,
-    burner:3
+    burner:3,
+    planetGrav:4
 }
 
 class CForcer {
@@ -72,6 +73,28 @@ class burner extends CForcer {
             }
             if(particle.colorG > .1) {
                 particle.colorG *= .99;
+            }
+        }
+    }
+}
+
+class planetGrav extends CForcer {
+    forceType = forceTypes.planetGrav;
+    gravConst = 6.674e-11;
+    applyForce(s) {
+        for(const p1 of s) {
+            for(const p2 of s) {
+                if(p1.index != p2.index) {
+                    const directionVec = new Vector3([p2.xPos-p1.xPos, p2.yPos-p1.yPos, p2.zPos-p1.zPos]);
+                    const squareDistance = Math.max(directionVec.dot(directionVec), .0001);
+                    directionVec.normalize();
+                    p1.xfTot += this.gravConst * directionVec.elements[0] * p1.mass * p2.mass / squareDistance;
+                    p1.yfTot += this.gravConst * directionVec.elements[1] * p1.mass * p2.mass / squareDistance;
+                    p1.zfTot += this.gravConst * directionVec.elements[2] * p1.mass * p2.mass / squareDistance;
+                    p2.xfTot += this.gravConst * -directionVec.elements[0] * p1.mass * p2.mass / squareDistance;
+                    p2.yfTot += this.gravConst * -directionVec.elements[1] * p1.mass * p2.mass / squareDistance;
+                    p2.zfTot += this.gravConst * -directionVec.elements[2] * p1.mass * p2.mass / squareDistance;
+                }
             }
         }
     }

@@ -130,21 +130,3 @@ class ageConstraint extends CLimit {
         }
     }
 }
-
-class Radius extends CLimit {
-    limitType = limitTypes.radius;
-    radius = .1;
-    applyLimit(s, particlePrev, particle) {
-        for(const p of s) {
-            if(particle.index != p.index) {
-                if(distance(particle, p) < this.radius) {
-                    const sizeOfMove = this.radius-distance(particle,p);
-                    const directionOfMove = [particle.xPos-p.xPos, particle.yPos-p.yPos, particle.zPos-p.zPos];
-                    particle.xPos += sizeOfMove * directionOfMove[0];
-                    particle.yPos += sizeOfMove * directionOfMove[1];
-                    particle.zPos += sizeOfMove * directionOfMove[2];
-                }
-            }
-        }
-    }
-}

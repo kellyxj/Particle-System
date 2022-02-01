@@ -146,31 +146,68 @@ class ParticleSystem {
     }
 
     initSpring(gl) {
-        this.nParticles = 2;
+        //using 3 springs with an explicit solver accumulates error very quickly
+        this.nParticles = 3;
         const p1 = new Particle();
         p1.setRandomPosition(0, [0,-1,0]);
         p1.setRandomVelocity(.1, [0,0,0]);
         const p2 = new Particle();
         p2.setRandomPosition(0, [0, 1, 0]);
         p2.setRandomVelocity(.1, [0,0,0]);
+        const p3 = new Particle();
+        p3.setRandomPosition(0, [1, 0, 0]);
+        p3.setRandomVelocity(.1, [0,0,0]);
 
         this.s1.push(p1);
         this.s1.push(p2);
+        this.s1.push(p3);
+
+        const q1 = new Particle();
+        const q2 = new Particle();
+        const q3 = new Particle();
+        this.s1dot.push(q1);
+        this.s1dot.push(q2);
+        this.s1dot.push(q3);
+        this.s2 = [...this.s1];
+
+        const f1 = new spring(p1.index, p2.index);
+        this.forces.push(f1);
+
+        const f2 = new spring(p1.index, p3.index);
+        this.forces.push(f2);
+
+        const f3 = new spring(p2.index, p3.index);
+        this.forces.push(f3);
+
+        const volume = new Volume(-10, 10, -10, 10, 0, 10, 1);
+        this.limits.push(volume);
+
+        this.initVbos(gl);
+    }
+
+    initPlanets(gl) {
+        this.nParticles = 2;
+        const p1 = new Particle();
+        p1.setRandomPosition(0, [0, 0, 0]);
+        p1.mass = 1000000000;
+        p1.colorR = 0;
+        const p2 = new Particle();
+        p2.setRandomPosition(0, [0, 1, 0]);
+        p2.mass = 10;
+        p2.setRandomVelocity(0, [-1, 0, 0]);
+
+        this.s1.push(p1);
+        this.s1.push(p2);
+
+        this.s2 = [...this.s1];
 
         const q1 = new Particle();
         const q2 = new Particle();
         this.s1dot.push(q1);
         this.s1dot.push(q2);
-        this.s2 = [...this.s1];
 
-        const f = new spring(p1.index, p2.index);
+        const f = new planetGrav();
         this.forces.push(f);
-
-        const volume = new Volume(-10, 10, -10, 10, 0, 10, 1);
-        this.limits.push(volume);
-
-        //const radius = new Radius();
-        //this.limits.push(radius);
 
         this.initVbos(gl);
     }
@@ -228,8 +265,10 @@ class ParticleSystem {
         this.add(sM, this.s1);
         this.mult(this.s1dot, g_timeStep*0.001/2);
         this.add(sM, this.s1dot);
+        console.log(sM);
         const sMdot = [...this.s1dot];
         this.dotFinder(sMdot, sM);
+        console.log(sMdot);
         this.mult(sMdot, g_timeStep*0.001);
         this.add(this.s2, sMdot);
     }
