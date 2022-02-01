@@ -1,11 +1,5 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-var glsl = require("glslify");
-var VSHADER_SOURCE = glsl(["#define GLSLIFY 1\nuniform mat4 u_ModelMatrix;\nuniform mat4 u_MvpMatrix;\n  attribute vec4 a_Position;\n  varying vec4 v_Color;\n  void main() {\n    gl_Position = u_MvpMatrix * u_ModelMatrix * (a_Position);\n    gl_PointSize = 10.0;\n    v_Color = vec4(1.0, 1.0, 1.0, 1.0);\n}"]);
-
-// Fragment shader program----------------------------------
-var FSHADER_SOURCE = glsl(["//  #ifdef GL_ES\nprecision mediump float;\n#define GLSLIFY 1\n//  #endif GL_ES \n  varying vec4 v_Color;\n  void main() {\n    gl_FragColor = v_Color;\n  }"]);
-
-var partSys = new ParticleSystem(false);
+var partSys = new ParticleSystem();
 
 var g_last = Date.now();				//  Timestamp: set after each frame of animation,
 																// used by 'animate()' function to find how much
@@ -37,12 +31,8 @@ function main() {
     console.log('Failed to get the rendering context for WebGL');
     return;
   }
-
-  // Initialize shaders
-  if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
-    console.log('Failed to intialize shaders.');
-    return;
-  }
+  worldBox.init(gl, makeGroundGrid(), 400);
+  worldBox.drawMode = gl.LINES;
 
     //camera controls
     document.addEventListener("keydown", (e) => {
@@ -177,11 +167,6 @@ function main() {
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
-  if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
-    console.log('main() Failed to intialize shaders.');
-    return;
-  }
-
   var u_ModelMatrix = gl.getUniformLocation(gl.program, 'u_ModelMatrix');
   if (!u_ModelMatrix) { 
     console.log('Failed to get the storage location of u_ModelMatrix');
@@ -198,7 +183,7 @@ function main() {
 
   var mvpMatrix = new Matrix4();
 
-  partSys.init(gl, 10);
+  partSys.initBouncy(gl, 100);
 
   var tick = function() {
     g_timeStep = animate();
@@ -235,19 +220,11 @@ function drawAll(gl, g_timeStep, modelMatrix, u_ModelMatrix, mvpMatrix, u_MvpMat
   partSys.render(mvpMatrix);         // transfer current state to VBO, set uniforms, draw it!
   partSys.swap();  
   
+  worldBox.switchToMe();
+  worldBox.adjust(mvpMatrix);
+  worldBox.draw();
+  
 }
 
 main();
-},{"glslify":2}],2:[function(require,module,exports){
-module.exports = function(strings) {
-  if (typeof strings === 'string') strings = [strings]
-  var exprs = [].slice.call(arguments,1)
-  var parts = []
-  for (var i = 0; i < strings.length-1; i++) {
-    parts.push(strings[i], exprs[i] || '')
-  }
-  parts.push(strings[i])
-  return parts.join('')
-}
-
 },{}]},{},[1]);

@@ -1,10 +1,4 @@
-var glsl = require("glslify");
-var VSHADER_SOURCE = glsl.file("./shaders/vertexShader.vert");
-
-// Fragment shader program----------------------------------
-var FSHADER_SOURCE = glsl.file("./shaders/fragmentShader.frag");
-
-var partSys = new ParticleSystem(false);
+var partSys = new ParticleSystem();
 
 var g_last = Date.now();				//  Timestamp: set after each frame of animation,
 																// used by 'animate()' function to find how much
@@ -18,10 +12,12 @@ var g_timeStepMin = g_timeStep;   //holds min,max timestep values since last key
 var g_timeStepMax = g_timeStep;
 
 //camera control
-var eyePosition = [-5, 0, 0.5];
+var eyePosition = [-15, 0, 2];
 var panAngle = 0;
 var tiltAngle = 0;
 var inverted = false;
+
+var paused = false;
 
 var worldBox = new VBObox();
 
@@ -36,12 +32,8 @@ function main() {
     console.log('Failed to get the rendering context for WebGL');
     return;
   }
-
-  // Initialize shaders
-  if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
-    console.log('Failed to intialize shaders.');
-    return;
-  }
+  worldBox.init(gl, makeGroundGrid(), 400);
+  worldBox.drawMode = gl.LINES;
 
     //camera controls
     document.addEventListener("keydown", (e) => {
@@ -170,16 +162,14 @@ function main() {
         console.log(panAngle);
     
       }
+      if(e.key === " ") {
+        paused = !paused;
+      }
     });
 
   // Specify the color for clearing <canvas>
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT);
-
-  if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
-    console.log('main() Failed to intialize shaders.');
-    return;
-  }
 
   var u_ModelMatrix = gl.getUniformLocation(gl.program, 'u_ModelMatrix');
   if (!u_ModelMatrix) { 
@@ -197,7 +187,9 @@ function main() {
 
   var mvpMatrix = new Matrix4();
 
-  partSys.init(gl, 10);
+  //partSys.initBouncy(gl, 200);
+  partSys.initSpring(gl);
+  //partSys.initFire(gl, 1600);
 
   var tick = function() {
     g_timeStep = animate();
@@ -227,12 +219,18 @@ function drawAll(gl, g_timeStep, modelMatrix, u_ModelMatrix, mvpMatrix, u_MvpMat
     eyePosition[2]+Math.sin(Math.PI*tiltAngle/180), //z value look at point
     0, 0, inverted? -1: 1); //up vector
 
-  partSys.applyForces(partSys.s1, partSys.forces);  // find current net force on each particle
-  partSys.dotFinder(partSys.s1dot, partSys.s1); // find time-derivative s1dot from s1;
-  partSys.solver(g_timeStep);         // find s2 from s1 & related states.
-  partSys.doConstraints();  // Apply all constraints.  s2 is ready!
+  if(!paused) {
+    partSys.applyForces(partSys.s1, partSys.forces);  // find current net force on each particle
+    partSys.dotFinder(partSys.s1dot, partSys.s1); // find time-derivative s1dot from s1;
+    partSys.solver(g_timeStep);         // find s2 from s1 & related states.
+    partSys.doConstraints();  // Apply all constraints.  s2 is ready! 
+  }
   partSys.render(mvpMatrix);         // transfer current state to VBO, set uniforms, draw it!
   partSys.swap();  
+
+  worldBox.switchToMe();
+  worldBox.adjust(mvpMatrix);
+  worldBox.draw();
   
 }
 

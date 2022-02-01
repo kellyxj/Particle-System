@@ -24,6 +24,8 @@ class VBObox {
         this.vboBytes;
         this.vboStride; 
 
+        this.drawMode;
+
         this.vboFcount_a_Pos = 4;
         this.vboFcount_a_Colr = 3;
         this.vboOffset_a_Pos = 0; 
@@ -165,7 +167,7 @@ class VBObox {
                               '.draw() call you needed to call this.switchToMe()!!');
         }  
 
-        this.gl.drawArrays(this.gl.POINTS,     //make it so drawing mode can be changed in initialization 	    
+        this.gl.drawArrays(this.drawMode, 
                         0, 								
                         this.nVerts);	
     }
@@ -176,3 +178,94 @@ class VBObox {
                             this.vboContents); 
     }
 }
+
+function makeGroundGrid() {
+    var xcount = 100;			// # of lines to draw in x,y to make the grid.
+      var ycount = 100;		
+      var xymax	= 50.0;			// grid size; extends to cover +/-xymax in x and y.
+       var xColr = new Float32Array([1.0, 1.0, 0.3]);	// bright yellow
+       var yColr = new Float32Array([0.5, 1.0, 0.5]);	// bright green.
+       
+      // Create an (global) array to hold this ground-plane's vertices:
+    var floatsPerVertex = 7;
+      var gndVerts = new Float32Array(floatsPerVertex*2*(xcount+ycount));
+                          // draw a grid made of xcount+ycount lines; 2 vertices per line.
+                          
+      var xgap = xymax/(xcount-1);		// HALF-spacing between lines in x,y;
+      var ygap = xymax/(ycount-1);		// (why half? because v==(0line number/2))
+      
+      // First, step thru x values as we make vertical lines of constant-x:
+      for(v=0, j=0; v<2*xcount; v++, j+= floatsPerVertex) {
+          if(v%2==0) {	// put even-numbered vertices at (xnow, -xymax, 0)
+              gndVerts[j  ] = -xymax + (v  )*xgap;	// x
+              gndVerts[j+1] = -xymax;								// y
+              gndVerts[j+2] = 0.0;									// z
+              gndVerts[j+3] = 1.0;									// w.
+          }
+          else {				// put odd-numbered vertices at (xnow, +xymax, 0).
+              gndVerts[j  ] = -xymax + (v-1)*xgap;	// x
+              gndVerts[j+1] = xymax;								// y
+              gndVerts[j+2] = 0.0;									// z
+              gndVerts[j+3] = 1.0;									// w.
+          }
+          gndVerts[j+4] = xColr[0];			// red
+          gndVerts[j+5] = xColr[1];			// grn
+          gndVerts[j+6] = xColr[2];			// blu
+      }
+      // Second, step thru y values as wqe make horizontal lines of constant-y:
+      // (don't re-initialize j--we're adding more vertices to the array)
+      for(v=0; v<2*ycount; v++, j+= floatsPerVertex) {
+          if(v%2==0) {		// put even-numbered vertices at (-xymax, ynow, 0)
+              gndVerts[j  ] = -xymax;								// x
+              gndVerts[j+1] = -xymax + (v  )*ygap;	// y
+              gndVerts[j+2] = 0.0;									// z
+              gndVerts[j+3] = 1.0;									// w.
+          }
+          else {					// put odd-numbered vertices at (+xymax, ynow, 0).
+              gndVerts[j  ] = xymax;								// x
+              gndVerts[j+1] = -xymax + (v-1)*ygap;	// y
+              gndVerts[j+2] = 0.0;									// z
+              gndVerts[j+3] = 1.0;									// w.
+          }
+          gndVerts[j+4] = yColr[0];			// red
+          gndVerts[j+5] = yColr[1];			// grn
+          gndVerts[j+6] = yColr[2];			// blu
+      }
+    return gndVerts;
+  }
+
+  function makeCube(xMin, xMax, yMin, yMax, zMin, zMax) {
+      var cubeVerts = new Float32Array(7*16);
+      const indices = [0, 1, 2, 3, 0, 4, 5, 1, 5, 6, 2, 6, 7, 3, 7, 4];
+      for(let i = 0; i < 16; i++) {
+          let xVal;
+          let yVal;
+          let zVal;
+          if(indices[i] == 0 || indices[i] == 4 || indices[i] == 7 || indices[i] == 3 ) {
+              xVal = xMax;
+          }
+          else {
+              xVal = xMin;
+          }
+          if(indices[i] == 0 || indices[i] == 1 || indices[i] == 2 || indices[i] == 3) {
+              yVal = yMin;
+          }
+          else {
+              yVal = yMax;
+          }
+          if(indices[i] == 0 || indices[i] == 1 || indices[i] == 5 || indices[i] == 4) {
+              zVal = zMax;
+          }
+          else {
+              zVal = zMin;
+          }
+          cubeVerts[7*i] = xVal;
+          cubeVerts[7*i+1] = yVal;
+          cubeVerts[7*i+2] = zVal;
+          cubeVerts[7*i+3] = 1;
+          cubeVerts[7*i+4] = 1;
+          cubeVerts[7*i+5] = 0;
+          cubeVerts[7*i+6] = 0;
+      }
+      return cubeVerts;
+  }

@@ -1,20 +1,28 @@
 const limitTypes = {
     none: 0,
-    box: 1,
-    wall: 2
+    volume: 1,
+    ageConstraint: 2,
+    radius: 3
 }
 
 class CLimit {
     limitType = limitTypes.none;
     targFirst = 0;
     targLast = -1;
-    applyLimit(particle) {
+    vboBox = new VBObox();
+    applyLimit(s1, particlePrev, particle) {
 
+    }
+    initVbo(gl) {
+
+    }
+    render() {
+        
     }
 }
 
-class Box extends CLimit {
-    limitType = limitTypes.box;
+class Volume extends CLimit {
+    limitType = limitTypes.volume;
     xMin = -.5;   
     xMax = .5;
     yMin = -.5;   
@@ -22,7 +30,17 @@ class Box extends CLimit {
     zMin = -.5;   
     zMax = .5;
     Kresti = 1;
-    applyLimit(particlePrev, particle) {
+    constructor(xMin, xMax, yMin, yMax, zMin, zMax, k) {
+        super();
+        this.xMin = xMin;
+        this.xMax = xMax;
+        this.yMin = yMin;
+        this.yMax = yMax;
+        this.zMin = zMin;
+        this.zMax = zMax;
+        this.Kresti = k;
+    }
+    applyLimit(s, particlePrev, particle) {
         if(particle.xPos < this.xMin) {
             particle.xPos = this.xMin;
             particle.xVel = particlePrev.xVel;
@@ -84,15 +102,49 @@ class Box extends CLimit {
             }
         }
     }
+    initVbo(gl) {
+        const vertices = makeCube(this.xMin, this.xMax, this.yMin, this.yMax, this.zMin, this.zMax);
+        this.vboBox.init(gl, vertices, 16);
+        this.vboBox.drawMode = gl.LINE_LOOP;
+    }
+    render(mvpMatrix) {
+        this.vboBox.switchToMe();
+        this.vboBox.adjust(mvpMatrix);
+        this.vboBox.draw();
+    }
 }
 
-class Wall extends CLimit {
-    limitType = limitTypes.wall;
-    xMin;
-    xMax;
-    yMin;
-    yMax;
-    zMin;
-    zMax;
-    Kresti = 1;
+class ageConstraint extends CLimit {
+    limitType = limitTypes.ageConstraint;
+    applyLimit(s, particlePrev, particle) {
+        if(particle.age > 200) {
+            particle.setRandomPosition(2, [0,0,0]);
+            particle.colorR = 1;
+            particle.colorG = Math.random()*.8-.1*particle.xPos*particle.xPos-.1*particle.yPos*particle.yPos;
+            particle.colorB = 0;
+            particle.setRandomVelocity(1, [0,0,6]);
+            if(particle.zPos < 0) {
+                particle.zPos = 0;
+            }
+            particle.age = Math.floor(Math.random() * 200);
+        }
+    }
+}
+
+class Radius extends CLimit {
+    limitType = limitTypes.radius;
+    radius = .1;
+    applyLimit(s, particlePrev, particle) {
+        for(const p of s) {
+            if(particle.index != p.index) {
+                if(distance(particle, p) < this.radius) {
+                    const sizeOfMove = this.radius-distance(particle,p);
+                    const directionOfMove = [particle.xPos-p.xPos, particle.yPos-p.yPos, particle.zPos-p.zPos];
+                    particle.xPos += sizeOfMove * directionOfMove[0];
+                    particle.yPos += sizeOfMove * directionOfMove[1];
+                    particle.zPos += sizeOfMove * directionOfMove[2];
+                }
+            }
+        }
+    }
 }

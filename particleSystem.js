@@ -1,6 +1,9 @@
 class Particle {
+   static numParticles = 0;
 
     constructor() {
+        this.index = Particle.numParticles;
+        Particle.numParticles++;
         this.xPos = 0;
         this.yPos = 0;
         this.zPos = 0;
@@ -14,42 +17,43 @@ class Particle {
         this.colorR = 1;
         this.colorG = 1;
         this.colorB = 1;
-        this.lifetime = 1;
+        this.age = 0;
         this.mass = 1;
         this.diameter = 10;
     }
 
-    setRandomPosition() {
-        const radius = 1;
+    setRandomPosition(radius, center) {
         const theta = 2*Math.PI*Math.random();
         const phi = 2*Math.PI*Math.random();
-        this.xPos = radius * Math.sin(theta) * Math.cos(phi);
-        this.yPos = radius * Math.sin(theta) * Math.sin(phi);
-        this.zPos = radius * Math.cos(theta);
+        this.xPos = center[0]+radius * Math.random() * Math.sin(theta) * Math.cos(phi);
+        this.yPos = center[1]+radius * Math.random() * Math.sin(theta) * Math.sin(phi);
+        this.zPos = center[2]+radius * Math.random() * Math.cos(theta);
         this.wPos = 1;
     }
 
-    setRandomVelocity() {
-        this.xVel = Math.random();
-        this.yVel = Math.random();
-        this.zVel = Math.random();
+    setRandomVelocity(randAmount, initVel) {
+        this.xVel = initVel[0]+randAmount*(2*Math.random()-1);
+        this.yVel = initVel[1]+randAmount*(2*Math.random()-1);
+        this.zVel = initVel[2]+randAmount*(2*Math.random()-1);
     }
+}
 
+function distance(p1, p2) {
+    const distance = Math.sqrt(Math.max((p1.xPos-p2.xPos) * (p1.xPos-p2.xPos) + //taking this max doesn't look necessary,
+                                (p1.yPos-p2.yPos) * (p2.xPos-p2.yPos) +         //but sometimes this is negative because of floating point error
+                                (p1.zPos-p2.zPos) * (p1.zPos-p2.zPos), 0));
+    return distance;
 }
 
 class ParticleSystem {
 
-    constructor(isFountain) {
-        this.ageConstraint = isFountain;
+    constructor() {
         this.nParticles = 0;
         this.s1 = [];
         this.s2 = [];
         this.s1dot = [];
         this.forces = [];
         this.limits = [];
-        this.FSIZE;
-        this.vboID;
-        this.a_PositionID;
         this.vboBox = new VBObox();
     }
 
@@ -81,14 +85,101 @@ class ParticleSystem {
         }
     }
 
-    init(gl, numParticles) {
+    initBouncy(gl, numParticles) {
         this.nParticles = numParticles;
-        const vertexArray = new Float32Array(this.nParticles * 7);
+        
         for(var i = 0; i < numParticles; i++) {
-            var p = new Particle();
-            p.setRandomPosition();
-            p.setRandomVelocity();
-            
+            const p = new Particle();
+            p.setRandomPosition(2, [0,0,2]);
+            p.setRandomVelocity(1, [0,0,0]);
+
+            this.s1.push(p);
+
+            const q = new Particle();
+            this.s1dot.push(q);
+        }
+        this.s2 = [...this.s1];
+        const f = new earthGrav();
+        this.forces.push(f);
+        
+        const volume = new Volume(-2, 2, -2, 2, 0, 4, 1);
+        this.limits.push(volume);
+
+        this.initVbos(gl);
+    }
+
+    initFire(gl, numParticles) {
+        this.nParticles=numParticles;
+
+        for(var i = 0; i < numParticles; i++) {
+            const p = new Particle();
+            p.setRandomPosition(2, [0,0,0]);
+            if(p.zPos < 0) {
+                p.zPos = 0;
+            }
+            p.colorR = 1;
+            p.colorG = Math.random()*.8-.1*p.xPos*p.xPos-.1*p.yPos*p.yPos;
+            p.colorB = 0;
+            p.setRandomVelocity(1, [0,0,8]);
+            p.age = Math.floor(Math.random()*400);
+
+            this.s1.push(p);
+
+            const q = new Particle();
+            this.s1dot.push(q);
+        }
+        this.s2 = [...this.s1];
+
+        const g = new earthGrav();
+        this.forces.push(g);
+
+        const b = new burner();
+        this.forces.push(b);
+        
+        const volume = new Volume(-50, 50, -50, 50, 0, 100);
+        this.limits.push(volume);
+
+        const emitter = new ageConstraint();
+        this.limits.push(emitter);
+
+        this.initVbos(gl);
+    }
+
+    initSpring(gl) {
+        this.nParticles = 2;
+        const p1 = new Particle();
+        p1.setRandomPosition(0, [0,-1,0]);
+        p1.setRandomVelocity(.1, [0,0,0]);
+        const p2 = new Particle();
+        p2.setRandomPosition(0, [0, 1, 0]);
+        p2.setRandomVelocity(.1, [0,0,0]);
+
+        this.s1.push(p1);
+        this.s1.push(p2);
+
+        const q1 = new Particle();
+        const q2 = new Particle();
+        this.s1dot.push(q1);
+        this.s1dot.push(q2);
+        this.s2 = [...this.s1];
+
+        const f = new spring(p1.index, p2.index);
+        this.forces.push(f);
+
+        const volume = new Volume(-10, 10, -10, 10, 0, 10, 1);
+        this.limits.push(volume);
+
+        //const radius = new Radius();
+        //this.limits.push(radius);
+
+        this.initVbos(gl);
+    }
+
+    //initialize the VBO for the particle system and all VBOs for constraint objects
+    initVbos(gl) {
+        const vertexArray = new Float32Array(this.nParticles * 7);
+        for(let i = 0; i < this.nParticles; i++) {
+            const p = this.s1[i];
             vertexArray[7*i] = p.xPos;
             vertexArray[7*i+1] = p.yPos;
             vertexArray[7*i+2] = p.zPos;
@@ -96,20 +187,13 @@ class ParticleSystem {
             vertexArray[7*i+4] = p.colorR;
             vertexArray[7*i+5] = p.colorG;
             vertexArray[7*i+6] = p.colorB;
-
-            this.s1.push(p);
-
-            var q = new Particle();
-            this.s1dot.push(q);
         }
-        this.s2 = [...this.s1];
-        const f = new earthGrav();
-        this.forces.push(f);
-        
-        const box = new Box();
-        this.limits.push(box);
-
         this.vboBox.init(gl, vertexArray, this.nParticles);
+        this.vboBox.drawMode = gl.POINTS;
+
+        for(const constraint of this.limits) {
+            constraint.initVbo(gl);
+        }
     }
 
     applyForces(s, forceList) {
@@ -118,10 +202,8 @@ class ParticleSystem {
             particle.yfTot = 0;
             particle.zfTot = 0;
         }
-        for(const particle of s) {
-            for(const force of forceList) {
-                force.applyForce(particle);
-            }
+        for(const force of forceList) {
+            force.applyForce(s);
         }
     }
 
@@ -157,7 +239,7 @@ class ParticleSystem {
             for(const limit of this.limits) {
                 const particle = this.s2[i];
                 const particlePrev = this.s1[i];
-                limit.applyLimit(particlePrev, particle);
+                limit.applyLimit(this.s1, particlePrev, particle);
             }
         }
     }
@@ -178,6 +260,9 @@ class ParticleSystem {
         this.vboBox.vboContents = vertexArray;
         this.vboBox.reload();
         this.vboBox.draw();
+        for(const constraint of this.limits) {
+            constraint.render(mvpMatrix);
+        }
     }
 
     print() {
