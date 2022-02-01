@@ -29,7 +29,7 @@ class earthGrav extends CForcer {
 
 class spring extends CForcer {
     forceType = forceTypes.spring;
-    K_spring = 10;
+    K_spring = 1;
     restLength = 1;
     constructor(index1, index2) {
         super();

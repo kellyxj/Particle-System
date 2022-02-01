@@ -45,6 +45,13 @@ function distance(p1, p2) {
     return distance;
 }
 
+const solverTypes = {
+    euler:1,
+    implicitEuler:2,
+    midpoint:3,
+    implicitMidpoint:4
+}
+
 class ParticleSystem {
 
     constructor() {
@@ -70,6 +77,8 @@ class ParticleSystem {
             stateVec1[i].xfTot += stateVec2[i].xfTot;
             stateVec1[i].yfTot += stateVec2[i].yfTot;
             stateVec1[i].zfTot += stateVec2[i].zfTot;
+
+            stateVec1[i].mass += stateVec2[i].mass;
         }
     }
 
@@ -149,13 +158,13 @@ class ParticleSystem {
         //using 3 springs with an explicit solver accumulates error very quickly
         this.nParticles = 3;
         const p1 = new Particle();
-        p1.setRandomPosition(0, [0,-1,0]);
+        p1.setRandomPosition(0, [0,-1,1]);
         p1.setRandomVelocity(.1, [0,0,0]);
         const p2 = new Particle();
-        p2.setRandomPosition(0, [0, 1, 0]);
+        p2.setRandomPosition(0, [0, 1, 2]);
         p2.setRandomVelocity(.1, [0,0,0]);
         const p3 = new Particle();
-        p3.setRandomPosition(0, [1, 0, 0]);
+        p3.setRandomPosition(0, [1, 0, 3]);
         p3.setRandomVelocity(.1, [0,0,0]);
 
         this.s1.push(p1);
@@ -179,8 +188,18 @@ class ParticleSystem {
         const f3 = new spring(p2.index, p3.index);
         this.forces.push(f3);
 
+        const g = new earthGrav();
+        this.forces.push(g);
+
         const volume = new Volume(-10, 10, -10, 10, 0, 10, 1);
         this.limits.push(volume);
+
+        const rope1 = new rope(p1.index, p2.index);
+        const rope2 = new rope(p1.index, p3.index);
+        const rope3 = new rope(p2.index, p3.index);
+        this.limits.push(rope1);
+        this.limits.push(rope2);
+        this.limits.push(rope3);
 
         this.initVbos(gl);
     }
@@ -189,11 +208,11 @@ class ParticleSystem {
         this.nParticles = 2;
         const p1 = new Particle();
         p1.setRandomPosition(0, [0, 0, 0]);
-        p1.mass = 1000000000;
+        p1.mass = 20000000000;
         p1.colorR = 0;
         const p2 = new Particle();
-        p2.setRandomPosition(0, [0, 1, 0]);
-        p2.mass = 10;
+        p2.setRandomPosition(0, [0, 2, 0]);
+        p2.mass = 1;
         p2.setRandomVelocity(0, [-1, 0, 0]);
 
         this.s1.push(p1);
@@ -260,15 +279,14 @@ class ParticleSystem {
         const sM = [];
         for(let i = 0; i < this.nParticles; i++) {
             const p = new Particle();
+            p.mass = 0;
             sM.push(p);
         }
         this.add(sM, this.s1);
         this.mult(this.s1dot, g_timeStep*0.001/2);
         this.add(sM, this.s1dot);
-        console.log(sM);
         const sMdot = [...this.s1dot];
         this.dotFinder(sMdot, sM);
-        console.log(sMdot);
         this.mult(sMdot, g_timeStep*0.001);
         this.add(this.s2, sMdot);
     }

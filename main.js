@@ -229,6 +229,7 @@ function drawAll(gl, g_timeStep, modelMatrix, u_ModelMatrix, mvpMatrix, u_MvpMat
   partSys.render(mvpMatrix);         // transfer current state to VBO, set uniforms, draw it!
   partSys.swap();  
 
+
   worldBox.switchToMe();
   worldBox.adjust(mvpMatrix);
   worldBox.draw();

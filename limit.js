@@ -2,7 +2,8 @@ const limitTypes = {
     none: 0,
     volume: 1,
     ageConstraint: 2,
-    radius: 3
+    rope: 3,
+    radius:4
 }
 
 class CLimit {
@@ -129,4 +130,45 @@ class ageConstraint extends CLimit {
             particle.age = Math.floor(Math.random() * 200);
         }
     }
+}
+
+class rope extends CLimit {
+    limitType = limitTypes.rope;
+    maxDistance = 2;
+    constructor(index1, index2) {
+        super();
+        this.e1 = index1;
+        this.e2 = index2;
+    }
+    applyLimit(s, particlePrev, particle) {
+        for(const p of s) {
+            if((p.index == this.e1 && particle.index == this.e2) || (p.index == this.e2 && particle.index == this.e1)) {
+                if(distance(p, particle) > this.maxDistance) {
+                    const directionVec = new Vector3([p.xPos-particle.xPos, p.yPos-particle.yPos, p.xPos-particle.zPos]); //vector pointing from particle to p
+                    directionVec.normalize();
+                    //first, enforce the distance constraint by moving particle towards p
+                    particle.xPos += directionVec.elements[0] * (distance(p,particle) - this.maxDistance);
+                    particle.yPos += directionVec.elements[1] * (distance(p,particle) - this.maxDistance);
+                    particle.zPos += directionVec.elements[2] * (distance(p,particle) - this.maxDistance);
+                    //cancel the component of particle's velocity which is moving away from p
+                    const velocityVec = new Vector3([particle.xVel, particle.yVel, particle.zVel]);
+                    const reverseDirectionVec = new Vector3([-directionVec.elements[0], -directionVec.elements[1], -directionVec.elements[2]]);
+                    const dotProduct = velocityVec.dot(reverseDirectionVec);
+                    particle.xVel += dotProduct * directionVec.elements[0];
+                    particle.yVel += dotProduct * directionVec.elements[1];
+                    particle.zVel += dotProduct * directionVec.elements[2];
+                    //cancel the component of p's velocity which is moving away from particle
+                    const velocityVec2 = new Vector3([p.xVel, p.yVel, p.zVel]);
+                    const dotProduct2 = velocityVec2.dot(directionVec);
+                    p.xVel += dotProduct * reverseDirectionVec.elements[0];
+                    p.yVel += dotProduct * reverseDirectionVec.elements[1];
+                    p.zVel += dotProduct * reverseDirectionVec.elements[2];
+                }
+            }
+        }
+    }
+}
+
+class radius extends CLimit {
+    limitType = limitTypes.radius;
 }
