@@ -56,7 +56,7 @@ class ParticleSystem {
 
     constructor() {
         this.nParticles = 0;
-        this.solver = solverTypes.midpoint;
+        this.solverType = solverTypes.midpoint;
         this.s1 = [];
         this.s2 = [];
         this.s1dot = [];
@@ -112,11 +112,9 @@ class ParticleSystem {
             p.setRandomVelocity(1, [0,0,0]);
 
             this.s1.push(p);
-
-            const q = new Particle();
-            this.s1dot.push(q);
         }
-        this.s2 = [...this.s1];
+        this.fill(this.s1dot, numParticles)
+        this.fill(this.s2, numParticles);
         const f = new earthGrav();
         this.forces.push(f);
         
@@ -143,10 +141,9 @@ class ParticleSystem {
 
             this.s1.push(p);
 
-            const q = new Particle();
-            this.s1dot.push(q);
         }
-        this.s2 = [...this.s1];
+        this.fill(this.s1dot, numParticles)
+        this.fill(this.s2, numParticles);
 
         const g = new earthGrav();
         this.forces.push(g);
@@ -289,33 +286,31 @@ class ParticleSystem {
     }
 
     solver(g_timeStep) {
-        if(this.solver == solverTypes.midpoint) {
+        if(this.solverType == solverTypes.midpoint) {
             const sM = [];
-            for(let i = 0; i < this.nParticles; i++) {
-                const p = new Particle();
-                p.mass = 0;
-                sM.push(p);
-            }
+            this.fill(sM, this.nParticles);
             this.add(sM, this.s1);
             this.mult(this.s1dot, g_timeStep*0.001/2);
             this.add(sM, this.s1dot);
-            const sMdot = [...this.s1dot];
+            const sMdot = [];
+            this.fill(sMdot, this.nParticles);
             this.dotFinder(sMdot, sM);
             this.mult(sMdot, g_timeStep*0.001);
             this.add(this.s2, sMdot);
         }
-        if(this.solver == solverTypes.implicitMidpoint) {
+        if(this.solverType == solverTypes.implicitMidpoint) {
             const sM0 = [];
             const sM0dot = [];
             const s20 = [];
             const s20dot = [];
             const sM1 = [];
             const sM1dot = [];
-            for(let i = 0; i < this.nParticles; i++) {
-                const p1 = new Particle();
-                p1.mass=0;
-                sM0.push(p1);
-            }
+            this.fill(sM0, this.nParticles);
+            this.fill(sM0dot, this.nParticles);
+            this.fill(s20, this.nParticles);
+            this.fill(s20dot, this.nParticles);
+            this.fill(sM1, this.nParticles);
+            this.fill(sM1dot, this.nParticles);
         }
     }
 
