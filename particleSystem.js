@@ -56,6 +56,7 @@ class ParticleSystem {
 
     constructor() {
         this.nParticles = 0;
+        this.solver = solverTypes.midpoint;
         this.s1 = [];
         this.s2 = [];
         this.s1dot = [];
@@ -91,6 +92,14 @@ class ParticleSystem {
             particle.xVel *= constant;
             particle.yVel *= constant;
             particle.zVel *= constant;
+        }
+    }
+
+    fill(stateVec, numParticles) {  //fill a stateVec with new particles that have 0 mass
+        for(let i = 0; i < numParticles; i++) {
+            const p = new Particle();
+            p.mass = 0;
+            stateVec.push(p);
         }
     }
 
@@ -159,13 +168,10 @@ class ParticleSystem {
         this.nParticles = 3;
         const p1 = new Particle();
         p1.setRandomPosition(0, [0,-1,1]);
-        p1.setRandomVelocity(.1, [0,0,0]);
         const p2 = new Particle();
         p2.setRandomPosition(0, [0, 1, 2]);
-        p2.setRandomVelocity(.1, [0,0,0]);
         const p3 = new Particle();
         p3.setRandomPosition(0, [1, 0, 3]);
-        p3.setRandomVelocity(.1, [0,0,0]);
 
         this.s1.push(p1);
         this.s1.push(p2);
@@ -200,6 +206,13 @@ class ParticleSystem {
         this.limits.push(rope1);
         this.limits.push(rope2);
         this.limits.push(rope3);
+
+        const radius1 = new radius(p1.index, p2.index);
+        const radius2 = new radius(p1.index, p3.index);
+        const radius3 = new radius(p2.index, p3.index);
+        this.limits.push(radius1);
+        this.limits.push(radius2);
+        this.limits.push(radius3);
 
         this.initVbos(gl);
     }
@@ -276,19 +289,34 @@ class ParticleSystem {
     }
 
     solver(g_timeStep) {
-        const sM = [];
-        for(let i = 0; i < this.nParticles; i++) {
-            const p = new Particle();
-            p.mass = 0;
-            sM.push(p);
+        if(this.solver == solverTypes.midpoint) {
+            const sM = [];
+            for(let i = 0; i < this.nParticles; i++) {
+                const p = new Particle();
+                p.mass = 0;
+                sM.push(p);
+            }
+            this.add(sM, this.s1);
+            this.mult(this.s1dot, g_timeStep*0.001/2);
+            this.add(sM, this.s1dot);
+            const sMdot = [...this.s1dot];
+            this.dotFinder(sMdot, sM);
+            this.mult(sMdot, g_timeStep*0.001);
+            this.add(this.s2, sMdot);
         }
-        this.add(sM, this.s1);
-        this.mult(this.s1dot, g_timeStep*0.001/2);
-        this.add(sM, this.s1dot);
-        const sMdot = [...this.s1dot];
-        this.dotFinder(sMdot, sM);
-        this.mult(sMdot, g_timeStep*0.001);
-        this.add(this.s2, sMdot);
+        if(this.solver == solverTypes.implicitMidpoint) {
+            const sM0 = [];
+            const sM0dot = [];
+            const s20 = [];
+            const s20dot = [];
+            const sM1 = [];
+            const sM1dot = [];
+            for(let i = 0; i < this.nParticles; i++) {
+                const p1 = new Particle();
+                p1.mass=0;
+                sM0.push(p1);
+            }
+        }
     }
 
     doConstraints() {

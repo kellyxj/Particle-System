@@ -189,8 +189,8 @@ function main() {
 
   //partSys.initBouncy(gl, 200);
   //partSys.initSpring(gl);
-  //partSys.initFire(gl, 1600);
-  partSys.initPlanets(gl);
+  partSys.initFire(gl, 1600);
+  //partSys.initPlanets(gl);
 
   var tick = function() {
     g_timeStep = animate();
