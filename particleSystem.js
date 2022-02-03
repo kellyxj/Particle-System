@@ -120,9 +120,10 @@ class ParticleSystem {
 
             this.s1.push(p);
         }
-        
+   
         this.makeParticles(this.s1dot, this.nParticles, 0);
         this.makeParticles(this.s2, this.nParticles, 1);
+
 
         const f = new earthGrav();
         this.forces.push(f);
@@ -325,15 +326,12 @@ class ParticleSystem {
     solver(g_timeStep) {
         if(this.solverType == solverTypes.midpoint) {
             const sM = [];
-            for(let i = 0; i < this.nParticles; i++) {
-                const p = new Particle();
-                p.mass = 0;
-                sM.push(p);
-            }
+            this.fill(sM, this.nParticles);
             this.add(sM, this.s1);
             this.mult(this.s1dot, g_timeStep*0.001/2);
             this.add(sM, this.s1dot);
-            const sMdot = [...this.s1dot];
+            const sMdot = [];
+            this.fill(sMdot, this.nParticles);
             this.dotFinder(sMdot, sM);
             this.mult(sMdot, g_timeStep*0.001);
             this.s2 = [...this.s1];
