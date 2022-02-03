@@ -2,6 +2,7 @@ var partSys1 = new ParticleSystem();
 var partSys2 = new ParticleSystem();
 var partSys3 = new ParticleSystem();
 var partSys4 = new ParticleSystem();
+var partSys5 = new ParticleSystem();
 
 const particleSystems = [];
 
@@ -196,10 +197,12 @@ function main() {
   partSys2.initFire(gl, 1600);
   partSys3.initPlanets(gl);
   partSys4.initSpring(gl);
+  partSys5.initCloth(gl, 50);
   particleSystems.push(partSys1);
   particleSystems.push(partSys2);
   particleSystems.push(partSys3);
   particleSystems.push(partSys4);
+  particleSystems.push(partSys5);
 
   var tick = function() {
     g_timeStep = animate();

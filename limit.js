@@ -2,15 +2,14 @@ const limitTypes = {
     none: 0,
     volume: 1,
     box: 2,
-    ageConstraint: 3,
+    fireConstraint: 3,
     rope: 4,
     radius:5
 }
 
 class CLimit {
     limitType = limitTypes.none;
-    targFirst = 0;
-    targLast = -1;
+    targetList = [];
     vboBox = new VBObox();
     applyLimit(s1, particlePrev, particle) {
 
@@ -43,66 +42,69 @@ class Volume extends CLimit {
         this.Kresti = k;
     }
     applyLimit(s, particlePrev, particle) {
-        if(particle.xPos < this.xMin) {
-            particle.xPos = this.xMin;
-            particle.xVel = particlePrev.xVel;
-            if(particle.xVel < 0) {
-                particle.xVel = -particle.xVel * this.Kresti;
+        if(this.targetList.length == 0 || this.targetList.find(target => target == particle.index)) {
+            if(particle.xPos < this.xMin) {
+                particle.xPos = this.xMin;
+                particle.xVel = particlePrev.xVel;
+                if(particle.xVel < 0) {
+                    particle.xVel = -particle.xVel * this.Kresti;
+                }
+                else {
+                    particle.xVel = particle.xVel * this.Kresti;
+                }
             }
-            else {
-                particle.xVel = particle.xVel * this.Kresti;
+            if(particle.yPos < this.yMin) {
+                particle.yPos = this.yMin;
+                particle.yVel = particlePrev.yVel;
+                if(particle.yVel < 0) {
+                    particle.yVel = -particle.yVel  * this.Kresti;
+                }
+                else {
+                    particle.yVel = particle.yVel * this.Kresti;
+                }
+            }
+            if(particle.zPos < this.zMin) {
+                particle.zPos = this.zMin;
+                particle.zVel = particlePrev.zVel;
+                if(particle.zVel < 0) {
+                    particle.zVel = -particle.zVel  * this.Kresti;
+                }
+                else {
+                    particle.zVel = particle.zVel * this.Kresti;
+                }
+            }
+            if(particle.xPos > this.xMax) {
+                particle.xPos = this.xMax;
+                particle.xVel = particlePrev.xVel;
+                if(particle.xVel > 0) {
+                    particle.xVel = -particle.xVel  * this.Kresti;
+                }
+                else {
+                    particle.xVel = particle.xVel * this.Kresti;
+                }
+            }
+            if(particle.yPos > this.yMax) {
+                particle.yPos = this.yMax;
+                particle.yVel = particlePrev.yVel;
+                if(particle.yVel > 0) {
+                    particle.yVel = -particle.yVel  * this.Kresti;
+                }
+                else {
+                    particle.yVel = particle.yVel * this.Kresti;
+                }
+            }
+            if(particle.zPos > this.zMax) {
+                particle.zPos = this.zMax;
+                particle.zVel = particlePrev.zVel;
+                if(particle.zVel > 0) {
+                    particle.zVel = -particle.zVel  * this.Kresti;
+                }
+                else {
+                    particle.zVel = particle.zVel * this.Kresti;
+                }
             }
         }
-        if(particle.yPos < this.yMin) {
-            particle.yPos = this.yMin;
-            particle.yVel = particlePrev.yVel;
-            if(particle.yVel < 0) {
-                particle.yVel = -particle.yVel  * this.Kresti;
-            }
-            else {
-                particle.yVel = particle.yVel * this.Kresti;
-            }
-        }
-        if(particle.zPos < this.zMin) {
-            particle.zPos = this.zMin;
-            particle.zVel = particlePrev.zVel;
-            if(particle.zVel < 0) {
-                particle.zVel = -particle.zVel  * this.Kresti;
-            }
-            else {
-                particle.zVel = particle.zVel * this.Kresti;
-            }
-        }
-        if(particle.xPos > this.xMax) {
-            particle.xPos = this.xMax;
-            particle.xVel = particlePrev.xVel;
-            if(particle.xVel > 0) {
-                particle.xVel = -particle.xVel  * this.Kresti;
-            }
-            else {
-                particle.xVel = particle.xVel * this.Kresti;
-            }
-        }
-        if(particle.yPos > this.yMax) {
-            particle.yPos = this.yMax;
-            particle.yVel = particlePrev.yVel;
-            if(particle.yVel > 0) {
-                particle.yVel = -particle.yVel  * this.Kresti;
-            }
-            else {
-                particle.yVel = particle.yVel * this.Kresti;
-            }
-        }
-        if(particle.zPos > this.zMax) {
-            particle.zPos = this.zMax;
-            particle.zVel = particlePrev.zVel;
-            if(particle.zVel > 0) {
-                particle.zVel = -particle.zVel  * this.Kresti;
-            }
-            else {
-                particle.zVel = particle.zVel * this.Kresti;
-            }
-        }
+        
     }
     initVbo(gl) {
         const vertices = makeCube(this.xMin, this.xMax, this.yMin, this.yMax, this.zMin, this.zMax);
@@ -119,12 +121,12 @@ class Volume extends CLimit {
 class Box extends CLimit {
     limitType = limitTypes.box;
     applyLimit(s, particlePrev, particle) {
-        
+
     }
 }
 
-class ageConstraint extends CLimit {
-    limitType = limitTypes.ageConstraint;
+class fireConstraint extends CLimit {
+    limitType = limitTypes.fireConstraint;
     applyLimit(s, particlePrev, particle) {
         if(particle.age > 150) {
             particle.mass = 1;
@@ -144,10 +146,11 @@ class ageConstraint extends CLimit {
 class Rope extends CLimit {
     limitType = limitTypes.rope;
     maxDistance = 10;
-    constructor(index1, index2) {
+    constructor(index1, index2, length) {
         super();
         this.e1 = index1;
         this.e2 = index2;
+        this.maxDistance = length;
     }
     applyLimit(s, particlePrev, particle) {
         for(const p of s) {

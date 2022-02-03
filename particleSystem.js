@@ -49,7 +49,8 @@ const solverTypes = {
     euler:1,
     implicitEuler:2,
     midpoint:3,
-    implicitMidpoint:4
+    implicitMidpoint:4,
+    velVerlet:5
 }
 
 class ParticleSystem {
@@ -57,7 +58,7 @@ class ParticleSystem {
     constructor() {
         this.nParticles = 0;
         this.modelMatrix = new Matrix4();
-        this.solverType = solverTypes.implicitMidpoint;
+        this.solverType = solverTypes.velVerlet;
         this.s1 = [];
         this.s2 = [];
         this.s1dot = [];
@@ -174,7 +175,7 @@ class ParticleSystem {
         const volume = new Volume(-10, 10, -10, 10, 0, 20);
         this.limits.push(volume);
 
-        const emitter = new ageConstraint();
+        const emitter = new fireConstraint();
         this.limits.push(emitter);
 
         this.modelMatrix.setTranslate(0, -10, 0);
@@ -208,13 +209,13 @@ class ParticleSystem {
         this.s1dot.push(q3);
         this.s2 = [...this.s1];
 
-        const f1 = new Spring(p1.index, p2.index);
+        const f1 = new Spring(p1.index, p2.index,3 ,5, .4);
         this.forces.push(f1);
 
-        const f2 = new Spring(p1.index, p3.index);
+        const f2 = new Spring(p1.index, p3.index,3 ,5, .4);
         this.forces.push(f2);
 
-        const f3 = new Spring(p2.index, p3.index);
+        const f3 = new Spring(p2.index, p3.index,3 ,5, .4);
         this.forces.push(f3);
 
         const g = new earthGrav();
@@ -230,9 +231,9 @@ class ParticleSystem {
         const volume = new Volume(-10, 10, -10, 10, 0, 20, 1);
         this.limits.push(volume);
 
-        const rope1 = new Rope(p1.index, p2.index);
-        const rope2 = new Rope(p1.index, p3.index);
-        const rope3 = new Rope(p2.index, p3.index);
+        const rope1 = new Rope(p1.index, p2.index, 10);
+        const rope2 = new Rope(p1.index, p3.index, 10);
+        const rope3 = new Rope(p2.index, p3.index, 10);
         this.limits.push(rope1);
         this.limits.push(rope2);
         this.limits.push(rope3);
@@ -278,6 +279,41 @@ class ParticleSystem {
         this.initVbos(gl);
     }
 
+    initCloth(gl, numParticles) {
+        this.nParticles = numParticles;
+        for(let i = 0; i < this.nParticles; i++) {
+            const p = new Particle();
+            p.zPos = i+this.nParticles;
+            this.s1.push(p);
+            if(i != 0) {
+                const s = new Spring(this.s1[i].index, this.s1[i-1].index, .5, 1, .5);
+                this.forces.push(s);
+                const r = new Rope(this.s1[i].index, this.s1[i-1].index, 2);
+                this.limits.push(r);
+            }
+        }
+        this.s2 = [...this.s1];
+        const anchor = new Volume(0, 0, 0, 0, 2*this.nParticles-1, 2*this.nParticles-1, 0);
+        anchor.targetList.push(this.s1[this.nParticles-1].index);
+        this.limits.push(anchor);
+
+        const v = new Volume(-50, 50, -50, 50, 0, 2*this.nParticles, 1);
+        this.limits.push(v);
+
+        const w = new Wind(1, .01);
+        this.forces.push(w);
+
+        const g = new earthGrav();
+        this.forces.push(g);
+
+        this.makeParticles(this.s1dot, this.nParticles);
+
+        this.modelMatrix.setTranslate(0, -5, 0);
+        this.modelMatrix.scale(.02, .02, .02);
+
+        this.initVbos(gl);
+    }
+
     //initialize the VBO for the particle system and all VBOs for constraint objects
     initVbos(gl) {
         const vertexArray = new Float32Array(this.nParticles * 7);
@@ -315,7 +351,7 @@ class ParticleSystem {
             dest[i].xPos = src[i].xVel;
             dest[i].yPos = src[i].yVel;
             dest[i].zPos = src[i].zVel;
-            const inverseMass = 1.0/src[i].mass;
+            const inverseMass = 1.0/(src[i].mass+0.0001);
             dest[i].xVel = src[i].xfTot * inverseMass;
             dest[i].yVel = src[i].yfTot * inverseMass;
             dest[i].zVel = src[i].zfTot * inverseMass;
@@ -392,6 +428,23 @@ class ParticleSystem {
             this.mult(sErr, -.5);
             this.add(this.s2, sErr);
 
+        }
+        if(this.solverType == solverTypes.velVerlet) {
+            for(let i = 0; i < this.nParticles; i++) {
+                this.s2[i].xPos = this.s1[i].xPos + this.s1[i].xVel * g_timeStep*.001 + this.s1[i].xfTot/(this.s1[i].mass+.0001) * g_timeStep*.001*g_timeStep*.001/2;
+                this.s2[i].yPos = this.s1[i].yPos + this.s1[i].yVel * g_timeStep*.001 + this.s1[i].yfTot/(this.s1[i].mass+.0001) * g_timeStep*.001*g_timeStep*.001/2;
+                this.s2[i].zPos = this.s1[i].zPos + this.s1[i].zVel * g_timeStep*.001 + this.s1[i].zfTot/(this.s1[i].mass+.0001) * g_timeStep*.001*g_timeStep*.001/2;
+            }
+            this.applyForces(this.s2, this.forces);
+            for(let i =0; i < this.nParticles; i++) {
+                this.s2[i].xVel = this.s1[i].xVel + (this.s2[i].xfTot/(this.s2[i].mass + .0001) + this.s1[i].xfTot/(this.s1[i].mass+.0001)) * g_timeStep*.001/2;
+                this.s2[i].yVel = this.s1[i].yVel + (this.s2[i].yfTot/(this.s2[i].mass + .0001) + this.s1[i].yfTot/(this.s1[i].mass+.0001)) * g_timeStep*.001/2;
+                this.s2[i].zVel = this.s1[i].zVel + (this.s2[i].zfTot/(this.s2[i].mass + .0001) + this.s1[i].zfTot/(this.s1[i].mass+.0001)) * g_timeStep*.001/2;
+                this.s2[i].age = this.s1[i].age;
+                this.s2[i].colorR = this.s1[i].colorR;
+                this.s2[i].colorG = this.s1[i].colorG;
+                this.s2[i].colorB = this.s1[i].colorB;
+            }
         }
     }
 

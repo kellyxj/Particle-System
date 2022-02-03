@@ -1,11 +1,13 @@
 const forceTypes = {
     none: 0,
     earthGrav: 1,
-    spring:2,
-    burner:3,
-    planetGrav:4,
-    drag:5,
-    tornado:6
+    wind:2,
+    spring:3,
+    burner:4,
+    planetGrav:5,
+    drag:6,
+    tornado:7,
+    brownian:8
 }
 
 class CForcer {
@@ -19,7 +21,7 @@ class CForcer {
 class earthGrav extends CForcer {
     forceType = forceTypes.earthGrav;
     gravConst = 9.832;
-    down = new Vector4([0, 0, -1, 1]);
+    down = new Vector4([0, 0, -1, 0]);
     applyForce(s) {
         for(const particle of s) {
             particle.xfTot += particle.mass * this.gravConst * this.down.elements[0];
@@ -29,15 +31,37 @@ class earthGrav extends CForcer {
     }
 }
 
+class Wind extends CForcer {
+    forceType = forceTypes.wind;
+    windAmount = 10;
+    windDirection = new Vector4([0, -1, 0, 0]);
+    turbulence = 1;
+    constructor(windAmount, turbulence) {
+        super();
+        this.windAmount = windAmount;
+        this.turbulence = turbulence;
+    }
+    applyForce(s) {
+        for(const particle of s) {
+            particle.xfTot += this.windAmount * this.windDirection.elements[0] + Math.random() * this.turbulence;
+            particle.yfTot += this.windAmount * this.windDirection.elements[1] + Math.random() * this.turbulence;
+            particle.zfTot += this.windAmount * this.windDirection.elements[2] + Math.random() * this.turbulence;
+        }
+    }
+}
+
 class Spring extends CForcer {
     forceType = forceTypes.spring;
     K_spring = 3;
     restLength = 5;
     K_damp = .4;
-    constructor(index1, index2) {
+    constructor(index1, index2, K_spring, restLength, K_damp) {
         super();
         this.e1 = index1;
         this.e2 = index2;
+        this.K_spring = K_spring;
+        this.restLength = restLength;
+        this.K_damp = K_damp;
     }
     applyForce(s) {
         let first = new Particle();
