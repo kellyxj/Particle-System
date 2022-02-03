@@ -326,12 +326,12 @@ class ParticleSystem {
     solver(g_timeStep) {
         if(this.solverType == solverTypes.midpoint) {
             const sM = [];
-            this.fill(sM, this.nParticles);
+            this.makeParticles(sM, this.nParticles,0);
             this.add(sM, this.s1);
             this.mult(this.s1dot, g_timeStep*0.001/2);
             this.add(sM, this.s1dot);
             const sMdot = [];
-            this.fill(sMdot, this.nParticles);
+            this.makeParticles(sMdot, this.nParticles,0);
             this.dotFinder(sMdot, sM);
             this.mult(sMdot, g_timeStep*0.001);
             this.s2 = [...this.s1];

@@ -1,9 +1,10 @@
 const limitTypes = {
     none: 0,
     volume: 1,
-    ageConstraint: 2,
-    rope: 3,
-    radius:4
+    box: 2,
+    ageConstraint: 3,
+    rope: 4,
+    radius:5
 }
 
 class CLimit {
@@ -112,6 +113,13 @@ class Volume extends CLimit {
         this.vboBox.switchToMe();
         this.vboBox.adjust(modelMatrix, mvpMatrix);
         this.vboBox.draw();
+    }
+}
+
+class Box extends CLimit {
+    limitType = limitTypes.box;
+    applyLimit(s, particlePrev, particle) {
+        
     }
 }
 

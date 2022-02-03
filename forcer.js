@@ -33,6 +33,7 @@ class Spring extends CForcer {
     forceType = forceTypes.spring;
     K_spring = 3;
     restLength = 5;
+    K_damp = .4;
     constructor(index1, index2) {
         super();
         this.e1 = index1;
@@ -65,12 +66,17 @@ class Spring extends CForcer {
                 relVelocity = new Vector3([first.xVel-second.xVel, first.yVel-second.yVel, first.zVel-second.zVel]);
             }
             forceDirection.normalize();
+            const dotProduct = forceDirection.dot(relVelocity);
             forceDirection.elements[0] *= forceAmount;
             forceDirection.elements[1] *= forceAmount;
             forceDirection.elements[2] *= forceAmount;
             particle.xfTot += this.K_spring * forceDirection.elements[0];
             particle.yfTot += this.K_spring * forceDirection.elements[1];
             particle.zfTot += this.K_spring * forceDirection.elements[2];
+            forceDirection.normalize();
+            particle.xfTot -= dotProduct * this.K_damp * forceDirection.elements[0];
+            particle.yfTot -= dotProduct * this.K_damp * forceDirection.elements[1];
+            particle.zfTot -= dotProduct * this.K_damp * forceDirection.elements[2];
         }
     }
 }
