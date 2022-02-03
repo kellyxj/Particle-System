@@ -2,7 +2,7 @@ const limitTypes = {
     none: 0,
     volume: 1,
     box: 2,
-    fireConstraint: 3,
+    ageConstraint: 3,
     rope: 4,
     radius:5
 }
@@ -19,6 +19,18 @@ class CLimit {
     }
     render() {
         
+    }
+    addTarget(p) {
+        if(!this.targetList.find(index => p.index == index)) {
+            this.targetList.push(p.index);
+        }
+    }
+    addTargets(s) {
+        for(const particle of s) {
+            if(!this.targetList.find(index => particle.index == index)) {
+                this.targetList.push(particle.index);
+            }
+        }
     }
 }
 
@@ -125,20 +137,79 @@ class Box extends CLimit {
     }
 }
 
-class fireConstraint extends CLimit {
-    limitType = limitTypes.fireConstraint;
+class AgeConstraint extends CLimit {
+    limitTypes = limitTypes.ageConstraint;
+    maxAge = -1;
+    constructor(max) {
+        super();
+        this.maxAge = max;
+    }
     applyLimit(s, particlePrev, particle) {
-        if(particle.age > 150) {
-            particle.mass = 1;
-            particle.setRandomPosition(1, [0,0,0]);
-            particle.colorR = 1;
-            particle.colorG = Math.random()*.7-.5*particle.xPos*particle.xPos-.5*particle.yPos*particle.yPos;
-            particle.colorB = 0;
-            particle.setRandomVelocity(2, [0,0, 20]);
-            if(particle.zPos < 0) {
-                particle.zPos = 0;
-            }
-            particle.age = Math.floor(Math.random() * 150);
+        this.markAsKilled(particle);       //marks any particles that satisfy a certain condition to be killed and re-emited. Sets particle.age to -1 if condition is met.
+        if(particle.age == -1 || (this.maxAge >0 && particle.age > this.maxAge)) {
+            this.emitParticle(particle);
+        }
+    }
+    markAsKilled(p) {
+
+    }
+    emitParticle(p) {
+
+    }
+}
+
+class FireConstraint extends AgeConstraint {
+    emitParticle(p) {
+        p.mass = 1;
+        p.setRandomPosition(1, [0,0,0]);
+        p.colorR = 1;
+        p.colorG = Math.random()*.7-.5*p.xPos*p.xPos-.5*p.yPos*p.yPos;
+        p.colorB = 0;
+        p.setRandomVelocity(2, [0,0, 20]);
+        if(p.zPos < 0) {
+            p.zPos = 0;
+        }
+        p.age = Math.floor(Math.random() * this.maxAge);
+    }
+}
+
+class TornadoConstraint extends AgeConstraint {
+    emitParticle(p) {
+        p.setRandomPosition(15, [0,0,50]);
+        p.setRandomVelocity(3, [0,0,0]);
+        p.age = Math.floor(Math.random() * this.maxAge);
+    }
+}
+
+class Annihilator extends AgeConstraint {
+    constructor(xMin, xMax, yMin, yMax, zMin, zMax) {
+        super();
+        this.xMin = xMin;
+        this.xMax = xMax;
+        this.yMin = yMin;
+        this.yMax = yMax;
+        this.zMin = zMin;
+        this.zMax = zMax;
+    }
+    markAsKilled(p) {
+        if(p.xPos >= this.xMin && p.xPos <= this.xMax && p.yPos >= this.yMin && p.yPos <= this.yMax && p.zPos >= this.zMin && p.zPos <= this.zMax) {
+            p.age = -1;
+        }
+    }
+    emitParticle(p) {
+        
+    }
+}
+
+class SnowConstraint extends Annihilator {
+    emitParticle(p) {
+        p.age = 0;
+        p.zPos = 19.9;
+        if(p.zVel > 0) {
+            p.zVel = 0;
+        }
+        if(Math.random() < .1) {
+            this.targetList = this.targetList.filter(index => index == p.index);
         }
     }
 }

@@ -1,8 +1,9 @@
-var partSys1 = new ParticleSystem();
-var partSys2 = new ParticleSystem();
-var partSys3 = new ParticleSystem();
-var partSys4 = new ParticleSystem();
-var partSys5 = new ParticleSystem();
+var partSys1 = new ParticleSystem(solverTypes.velVerlet);
+var partSys2 = new ParticleSystem(solverTypes.velVerlet);
+var partSys3 = new ParticleSystem(solverTypes.velVerlet);
+var partSys4 = new ParticleSystem(solverTypes.velVerlet);
+var partSys5 = new ParticleSystem(solverTypes.velVerlet);
+var partSys6 = new ParticleSystem(solverTypes.velVerlet);
 
 const particleSystems = [];
 
@@ -171,6 +172,15 @@ function main() {
       if(e.key === " ") {
         paused = !paused;
       }
+      if(e.key === "v") {
+        changeSolver(solverTypes.velVerlet);
+      }
+      if(e.key === "m") {
+        changeSolver(solverTypes.midpoint);
+      }
+      if(e.key === "i") {
+        changeSolver(solverTypes.implicitMidpoint);
+      }
     });
 
   // Specify the color for clearing <canvas>
@@ -198,11 +208,13 @@ function main() {
   partSys3.initPlanets(gl);
   partSys4.initSpring(gl);
   partSys5.initCloth(gl, 50);
+  partSys6.initPortal(gl, 500);
   particleSystems.push(partSys1);
   particleSystems.push(partSys2);
   particleSystems.push(partSys3);
   particleSystems.push(partSys4);
   particleSystems.push(partSys5);
+  particleSystems.push(partSys6);
 
   var tick = function() {
     g_timeStep = animate();
@@ -211,6 +223,12 @@ function main() {
     requestAnimationFrame(tick, canvas);   
   };
   tick();		
+}
+
+function changeSolver(solver) {
+  for(const partSys of particleSystems) {
+    partSys.solverType = solver;
+  }
 }
 
 function animate() {

@@ -55,10 +55,10 @@ const solverTypes = {
 
 class ParticleSystem {
 
-    constructor() {
+    constructor(solver) {
         this.nParticles = 0;
         this.modelMatrix = new Matrix4();
-        this.solverType = solverTypes.velVerlet;
+        this.solverType = solver;
         this.s1 = [];
         this.s2 = [];
         this.s1dot = [];
@@ -109,6 +109,7 @@ class ParticleSystem {
 
     initTornado(gl, numParticles) {
         this.nParticles = numParticles;
+        this.s1 = [];
         
         for(var i = 0; i < numParticles; i++) {
             const p = new Particle();
@@ -118,6 +119,7 @@ class ParticleSystem {
             p.colorG = .3+randomVar*.2;
             p.colorB = .3+randomVar*.2;
             p.setRandomVelocity(3, [0,0,0]);
+            p.age = Math.floor(Math.random() * 1000);
 
             this.s1.push(p);
         }
@@ -134,10 +136,17 @@ class ParticleSystem {
         
         const d = new Drag(.15);
         this.forces.push(d);
+
+        const a = new Ager();
+        this.forces.push(a);
+
+        const emitter = new TornadoConstraint(1000);
+        this.limits.push(emitter);
         
         const volume = new Volume(-100, 100, -100, 100, 0, 200, .95);
         this.limits.push(volume);
 
+        this.modelMatrix.setTranslate(0, -10, 0);
         this.modelMatrix.scale(.01 ,.01 ,.01);
 
         this.initVbos(gl);
@@ -175,16 +184,17 @@ class ParticleSystem {
         const volume = new Volume(-10, 10, -10, 10, 0, 20);
         this.limits.push(volume);
 
-        const emitter = new fireConstraint();
+        const emitter = new FireConstraint(150);
         this.limits.push(emitter);
 
-        this.modelMatrix.setTranslate(0, -10, 0);
+        this.modelMatrix.setTranslate(0, 0, 0);
         this.modelMatrix.scale(.2, .2, .2);
 
         this.initVbos(gl);
     }
 
     initSpring(gl) {
+        this.s1 = [];
         //using 3 springs with an explicit solver accumulates error very quickly
         this.nParticles = 3;
         const p1 = new Particle();
@@ -201,12 +211,7 @@ class ParticleSystem {
         this.s1.push(p2);
         this.s1.push(p3);
 
-        const q1 = new Particle();
-        const q2 = new Particle();
-        const q3 = new Particle();
-        this.s1dot.push(q1);
-        this.s1dot.push(q2);
-        this.s1dot.push(q3);
+        this.makeParticles(this.s1dot, this.nParticles);
         this.s2 = [...this.s1];
 
         const f1 = new Spring(p1.index, p2.index,3 ,5, .4);
@@ -220,6 +225,9 @@ class ParticleSystem {
 
         const g = new earthGrav();
         this.forces.push(g);
+
+        const d = new Drag(.1);
+        this.forces.push(d);
 
         /*const radius1 = new Radius(p1.index, p2.index);
         const radius2 = new Radius(p1.index, p3.index);
@@ -248,10 +256,12 @@ class ParticleSystem {
 
     initPlanets(gl) {
         this.nParticles = 2;
+        this.s1 = [];
         const p1 = new Particle();
         p1.setRandomPosition(0, [0, 0, 0]);
-        p1.mass = 20000000000;
-        p1.colorR = 0;
+        p1.mass = 100;
+        p1.colorB = 0;
+        p1.colorG = 0;
         const p2 = new Particle();
         p2.setRandomPosition(0, [0, 2, 0]);
         p2.mass = 1;
@@ -262,12 +272,9 @@ class ParticleSystem {
 
         this.s2 = [...this.s1];
 
-        const q1 = new Particle();
-        const q2 = new Particle();
-        this.s1dot.push(q1);
-        this.s1dot.push(q2);
+        this.makeParticles(this.s1dot, 2);
 
-        const f = new planetGrav();
+        const f = new planetGrav(.01);
         this.forces.push(f);
 
         const volume = new Volume(-5, 5, -5, 5, 0, 5, 1);
@@ -281,14 +288,15 @@ class ParticleSystem {
 
     initCloth(gl, numParticles) {
         this.nParticles = numParticles;
+        this.s1 = [];
         for(let i = 0; i < this.nParticles; i++) {
             const p = new Particle();
             p.zPos = i+this.nParticles;
             this.s1.push(p);
             if(i != 0) {
-                const s = new Spring(this.s1[i].index, this.s1[i-1].index, .5, 1, .5);
+                const s = new Spring(this.s1[i].index, this.s1[i-1].index, .0005, 1, .99);
                 this.forces.push(s);
-                const r = new Rope(this.s1[i].index, this.s1[i-1].index, 2);
+                const r = new Rope(this.s1[i].index, this.s1[i-1].index, 1.4);
                 this.limits.push(r);
             }
         }
@@ -300,16 +308,54 @@ class ParticleSystem {
         const v = new Volume(-50, 50, -50, 50, 0, 2*this.nParticles, 1);
         this.limits.push(v);
 
-        const w = new Wind(1, .01);
+        const w = new Wind(.05, .01);
         this.forces.push(w);
 
         const g = new earthGrav();
         this.forces.push(g);
 
+        const d = new Drag(.35);
+        this.forces.push(d);
+
         this.makeParticles(this.s1dot, this.nParticles);
 
         this.modelMatrix.setTranslate(0, -5, 0);
         this.modelMatrix.scale(.02, .02, .02);
+
+        this.initVbos(gl);
+    }
+
+    initPortal(gl, numParticles) {
+        this.nParticles = numParticles;
+        this.s1 = [];
+        for(let i = 0; i < this.nParticles; i++) {
+            const p = new Particle();
+            p.setRandomPosition(15, [0, 0, 10]);
+            p.setRandomVelocity(1, [0,0,0]);
+            this.s1.push(p);
+        }
+        this.makeParticles(this.s1dot, this.nParticles);
+        this.s2 = [...this.s1];
+
+        const b = new Brownian(1, 5);
+        this.forces.push(b);
+
+        const g = new earthGrav();
+        g.gravConst = 1;
+        this.forces.push(g);
+
+        const d = new Drag(.5);
+        this.forces.push(d);
+
+        const v = new Volume(-10, 10, -10, 10, 0, 20, 1);
+        this.limits.push(v);
+
+        const a = new SnowConstraint(-10, 10, -10, 10, 0, 0);
+        a.addTargets(this.s1);
+        this.limits.push(a);
+
+        this.modelMatrix.setTranslate(0, -15, 0);
+        this.modelMatrix.scale(.2, .2, .2);
 
         this.initVbos(gl);
     }
@@ -342,7 +388,7 @@ class ParticleSystem {
             particle.zfTot = 0;
         }
         for(const force of forceList) {
-            force.applyForce(s);
+            force.calcForce(s);
         }
     }
 
