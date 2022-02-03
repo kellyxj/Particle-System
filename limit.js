@@ -59,7 +59,7 @@ class Volume extends CLimit {
                 particle.yVel = -particle.yVel  * this.Kresti;
             }
             else {
-                particle.xVel = particle.yVel * this.Kresti;
+                particle.yVel = particle.yVel * this.Kresti;
             }
         }
         if(particle.zPos < this.zMin) {
@@ -69,7 +69,7 @@ class Volume extends CLimit {
                 particle.zVel = -particle.zVel  * this.Kresti;
             }
             else {
-                particle.xVel = particle.zVel * this.Kresti;
+                particle.zVel = particle.zVel * this.Kresti;
             }
         }
         if(particle.xPos > this.xMax) {
@@ -89,7 +89,7 @@ class Volume extends CLimit {
                 particle.yVel = -particle.yVel  * this.Kresti;
             }
             else {
-                particle.xVel = particle.yVel * this.Kresti;
+                particle.yVel = particle.yVel * this.Kresti;
             }
         }
         if(particle.zPos > this.zMax) {
@@ -99,7 +99,7 @@ class Volume extends CLimit {
                 particle.zVel = -particle.zVel  * this.Kresti;
             }
             else {
-                particle.xVel = particle.zVel * this.Kresti;
+                particle.zVel = particle.zVel * this.Kresti;
             }
         }
     }
@@ -108,9 +108,9 @@ class Volume extends CLimit {
         this.vboBox.init(gl, vertices, 16);
         this.vboBox.drawMode = gl.LINE_LOOP;
     }
-    render(mvpMatrix) {
+    render(modelMatrix, mvpMatrix) {
         this.vboBox.switchToMe();
-        this.vboBox.adjust(mvpMatrix);
+        this.vboBox.adjust(modelMatrix, mvpMatrix);
         this.vboBox.draw();
     }
 }
@@ -118,23 +118,24 @@ class Volume extends CLimit {
 class ageConstraint extends CLimit {
     limitType = limitTypes.ageConstraint;
     applyLimit(s, particlePrev, particle) {
-        if(particle.age > 200) {
-            particle.setRandomPosition(2, [0,0,0]);
+        if(particle.age > 150) {
+            particle.mass = 1;
+            particle.setRandomPosition(1, [0,0,0]);
             particle.colorR = 1;
-            particle.colorG = Math.random()*.8-.1*particle.xPos*particle.xPos-.1*particle.yPos*particle.yPos;
+            particle.colorG = Math.random()*.7-.5*particle.xPos*particle.xPos-.5*particle.yPos*particle.yPos;
             particle.colorB = 0;
-            particle.setRandomVelocity(1, [0,0,6]);
+            particle.setRandomVelocity(2, [0,0, 20]);
             if(particle.zPos < 0) {
                 particle.zPos = 0;
             }
-            particle.age = Math.floor(Math.random() * 200);
+            particle.age = Math.floor(Math.random() * 150);
         }
     }
 }
 
-class rope extends CLimit {
+class Rope extends CLimit {
     limitType = limitTypes.rope;
-    maxDistance = 2.5;
+    maxDistance = 10;
     constructor(index1, index2) {
         super();
         this.e1 = index1;
@@ -169,9 +170,9 @@ class rope extends CLimit {
     }
 }
 
-class radius extends CLimit {
+class Radius extends CLimit {
     limitType = limitTypes.radius;
-    minDistance = 1.5;
+    minDistance = 1;
     constructor(index1, index2) {
         super();
         this.e1 = index1;

@@ -144,13 +144,14 @@ class VBObox {
         return isOK;
     }
 
-    adjust(mvpMatrix) {
+    adjust(modelMatrix, mvpMatrix) {
         if(this.isReady()==false) {
             console.log('ERROR! before' + this.constructor.name + 
                               '.adjust() call you needed to call this.switchToMe()!!');
         }
         
         this.ModelMat.setIdentity();
+        this.ModelMat.set(modelMatrix);
         this.gl.uniformMatrix4fv(this.u_ModelMatLoc,
             false, 				
             this.ModelMat.elements);

@@ -1,4 +1,9 @@
-var partSys = new ParticleSystem();
+var partSys1 = new ParticleSystem();
+var partSys2 = new ParticleSystem();
+var partSys3 = new ParticleSystem();
+var partSys4 = new ParticleSystem();
+
+const particleSystems = [];
 
 var g_last = Date.now();				//  Timestamp: set after each frame of animation,
 																// used by 'animate()' function to find how much
@@ -187,10 +192,14 @@ function main() {
 
   var mvpMatrix = new Matrix4();
 
-  //partSys.initBouncy(gl, 200);
-  //partSys.initSpring(gl);
-  partSys.initFire(gl, 1600);
-  //partSys.initPlanets(gl);
+  partSys1.initTornado(gl, 600);
+  partSys2.initFire(gl, 1600);
+  partSys3.initPlanets(gl);
+  partSys4.initSpring(gl);
+  particleSystems.push(partSys1);
+  particleSystems.push(partSys2);
+  particleSystems.push(partSys3);
+  particleSystems.push(partSys4);
 
   var tick = function() {
     g_timeStep = animate();
@@ -220,18 +229,19 @@ function drawAll(gl, g_timeStep, modelMatrix, u_ModelMatrix, mvpMatrix, u_MvpMat
     eyePosition[2]+Math.sin(Math.PI*tiltAngle/180), //z value look at point
     0, 0, inverted? -1: 1); //up vector
 
-  if(!paused) {
-    partSys.applyForces(partSys.s1, partSys.forces);  // find current net force on each particle
-    partSys.dotFinder(partSys.s1dot, partSys.s1); // find time-derivative s1dot from s1;
-    partSys.solver(g_timeStep);         // find s2 from s1 & related states.
-    partSys.doConstraints();  // Apply all constraints.  s2 is ready! 
-  }
-  partSys.render(mvpMatrix);         // transfer current state to VBO, set uniforms, draw it!
-  partSys.swap();  
-
+    for(const partSys of particleSystems) {
+      if(!paused) {
+        partSys.applyForces(partSys.s1, partSys.forces);  // find current net force on each particle
+        partSys.dotFinder(partSys.s1dot, partSys.s1); // find time-derivative s1dot from s1;
+        partSys.solver(g_timeStep);         // find s2 from s1 & related states.
+        partSys.doConstraints(g_timeStep);  // Apply all constraints.  s2 is ready! 
+      }
+      partSys.render(mvpMatrix);         // transfer current state to VBO, set uniforms, draw it!
+      partSys.swap();  
+    }
 
   worldBox.switchToMe();
-  worldBox.adjust(mvpMatrix);
+  worldBox.adjust(modelMatrix, mvpMatrix);
   worldBox.draw();
   
 }
