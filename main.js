@@ -4,6 +4,7 @@ var partSys3 = new ParticleSystem(solverTypes.velVerlet);
 var partSys4 = new ParticleSystem(solverTypes.velVerlet);
 var partSys5 = new ParticleSystem(solverTypes.velVerlet);
 var partSys6 = new ParticleSystem(solverTypes.velVerlet);
+var partSys7 = new ParticleSystem(solverTypes.velVerlet);
 
 const particleSystems = [];
 
@@ -19,7 +20,7 @@ var g_timeStepMin = g_timeStep;   //holds min,max timestep values since last key
 var g_timeStepMax = g_timeStep;
 
 //camera control
-var eyePosition = [-15, 0, 2];
+var eyePosition = [-15, 15, 2];
 var panAngle = 0;
 var tiltAngle = 0;
 var inverted = false;
@@ -203,18 +204,20 @@ function main() {
 
   var mvpMatrix = new Matrix4();
 
-  partSys1.initTornado(gl, 600);
+  partSys1.initTornado(gl, 1000);
   partSys2.initFire(gl, 1600);
   partSys3.initPlanets(gl);
   partSys4.initSpring(gl);
   partSys5.initCloth(gl, 50);
-  partSys6.initPortal(gl, 500);
+  partSys6.initSnow(gl, 500);
+  partSys7.initBoids(gl, 400);
   particleSystems.push(partSys1);
   particleSystems.push(partSys2);
   particleSystems.push(partSys3);
   particleSystems.push(partSys4);
   particleSystems.push(partSys5);
   particleSystems.push(partSys6);
+  particleSystems.push(partSys7);
 
   var tick = function() {
     g_timeStep = animate();
@@ -250,6 +253,11 @@ function drawAll(gl, g_timeStep, modelMatrix, u_ModelMatrix, mvpMatrix, u_MvpMat
     eyePosition[2]+Math.sin(Math.PI*tiltAngle/180), //z value look at point
     0, 0, inverted? -1: 1); //up vector
 
+  worldBox.switchToMe();
+  worldBox.adjust(modelMatrix, mvpMatrix);
+  worldBox.draw();
+  
+
     for(const partSys of particleSystems) {
       if(!paused) {
         partSys.applyForces(partSys.s1, partSys.forces);  // find current net force on each particle
@@ -261,9 +269,6 @@ function drawAll(gl, g_timeStep, modelMatrix, u_ModelMatrix, mvpMatrix, u_MvpMat
       partSys.swap();  
     }
 
-  worldBox.switchToMe();
-  worldBox.adjust(modelMatrix, mvpMatrix);
-  worldBox.draw();
   
 }
 

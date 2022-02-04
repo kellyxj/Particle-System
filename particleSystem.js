@@ -99,7 +99,7 @@ class ParticleSystem {
         }
     }
 
-    makeParticles(stateVec, numParticles, mass) {  //fill a stateVec with new particles that have 0 mass
+    makeParticles(stateVec, numParticles, mass) {  //fill a stateVec with new particles
         for(let i = 0; i < numParticles; i++) {
             const p = new Particle();
             p.mass = mass;
@@ -109,7 +109,6 @@ class ParticleSystem {
 
     initTornado(gl, numParticles) {
         this.nParticles = numParticles;
-        this.s1 = [];
         
         for(var i = 0; i < numParticles; i++) {
             const p = new Particle();
@@ -146,7 +145,7 @@ class ParticleSystem {
         const volume = new Volume(-100, 100, -100, 100, 0, 200, .95);
         this.limits.push(volume);
 
-        this.modelMatrix.setTranslate(0, -10, 0);
+        this.modelMatrix.setTranslate(0, -5, 0);
         this.modelMatrix.scale(.01 ,.01 ,.01);
 
         this.initVbos(gl);
@@ -164,7 +163,7 @@ class ParticleSystem {
             p.colorR = 1;
             p.colorG = Math.random()*.7-.5*p.xPos*p.xPos-.5*p.yPos*p.yPos;
             p.colorB = 0;
-            p.setRandomVelocity(2, [0,0,20]);
+            p.setRandomVelocity(5, [0,0,30]);
             p.age = Math.floor(Math.random()*300);
 
             this.s1.push(p);
@@ -187,14 +186,13 @@ class ParticleSystem {
         const emitter = new FireConstraint(150);
         this.limits.push(emitter);
 
-        this.modelMatrix.setTranslate(0, 0, 0);
+        this.modelMatrix.setTranslate(0, 5, 0);
         this.modelMatrix.scale(.2, .2, .2);
 
         this.initVbos(gl);
     }
 
     initSpring(gl) {
-        this.s1 = [];
         //using 3 springs with an explicit solver accumulates error very quickly
         this.nParticles = 3;
         const p1 = new Particle();
@@ -245,10 +243,8 @@ class ParticleSystem {
         this.limits.push(rope1);
         this.limits.push(rope2);
         this.limits.push(rope3);
-
         
-
-        this.modelMatrix.setTranslate(0, 5, 0);
+        this.modelMatrix.setTranslate(0, 10, 0);
         this.modelMatrix.scale(.1, .1, .1);
 
         this.initVbos(gl);
@@ -256,16 +252,15 @@ class ParticleSystem {
 
     initPlanets(gl) {
         this.nParticles = 2;
-        this.s1 = [];
         const p1 = new Particle();
-        p1.setRandomPosition(0, [0, 0, 0]);
-        p1.mass = 100;
+        p1.setRandomPosition(0, [0, 0, 10]);
+        p1.mass = 10000;
         p1.colorB = 0;
         p1.colorG = 0;
         const p2 = new Particle();
-        p2.setRandomPosition(0, [0, 2, 0]);
+        p2.setRandomPosition(0, [0, 50, 10]);
         p2.mass = 1;
-        p2.setRandomVelocity(0, [-1, 0, 0]);
+        p2.setRandomVelocity(0, [-20, 0, 0]);
 
         this.s1.push(p1);
         this.s1.push(p2);
@@ -274,21 +269,20 @@ class ParticleSystem {
 
         this.makeParticles(this.s1dot, 2);
 
-        const f = new planetGrav(.01);
+        const f = new planetGrav(1);
         this.forces.push(f);
 
-        const volume = new Volume(-5, 5, -5, 5, 0, 5, 1);
+        const volume = new Volume(-100, 100, -100, 100, 0, 20, 1);
         this.limits.push(volume);
 
-        this.modelMatrix.setTranslate(0, 10, 0);
-        this.modelMatrix.scale(.2, .2, .2);
+        this.modelMatrix.setTranslate(0, 15, 0);
+        this.modelMatrix.scale(.02, .02, .02);
 
         this.initVbos(gl);
     }
 
     initCloth(gl, numParticles) {
         this.nParticles = numParticles;
-        this.s1 = [];
         for(let i = 0; i < this.nParticles; i++) {
             const p = new Particle();
             p.zPos = i+this.nParticles;
@@ -296,7 +290,7 @@ class ParticleSystem {
             if(i != 0) {
                 const s = new Spring(this.s1[i].index, this.s1[i-1].index, .0005, 1, .99);
                 this.forces.push(s);
-                const r = new Rope(this.s1[i].index, this.s1[i-1].index, 1.4);
+                const r = new Rope(this.s1[i].index, this.s1[i-1].index, 1.1);
                 this.limits.push(r);
             }
         }
@@ -319,17 +313,18 @@ class ParticleSystem {
 
         this.makeParticles(this.s1dot, this.nParticles);
 
-        this.modelMatrix.setTranslate(0, -5, 0);
+        this.modelMatrix.setTranslate(0, 0, 0);
         this.modelMatrix.scale(.02, .02, .02);
 
         this.initVbos(gl);
     }
 
-    initPortal(gl, numParticles) {
+    initSnow(gl, numParticles) {
         this.nParticles = numParticles;
-        this.s1 = [];
         for(let i = 0; i < this.nParticles; i++) {
             const p = new Particle();
+            //p.colorR = 0;
+            //p.colorG = 0;
             p.setRandomPosition(15, [0, 0, 10]);
             p.setRandomVelocity(1, [0,0,0]);
             this.s1.push(p);
@@ -347,15 +342,73 @@ class ParticleSystem {
         const d = new Drag(.5);
         this.forces.push(d);
 
-        const v = new Volume(-10, 10, -10, 10, 0, 20, 1);
+        const v = new Volume(-10, 10, -10, 10, 0, 20, 0);
         this.limits.push(v);
 
-        const a = new SnowConstraint(-10, 10, -10, 10, 0, 0);
-        a.addTargets(this.s1);
+        const a = new Portal(-10, 10, -10, 10, 0, 0, [0, 0, 19.9]);
         this.limits.push(a);
 
-        this.modelMatrix.setTranslate(0, -15, 0);
+        this.modelMatrix.setTranslate(0, -10, 0);
         this.modelMatrix.scale(.2, .2, .2);
+
+        this.initVbos(gl);
+    }
+
+    initBoids(gl, numParticles) {
+        this.nParticles = numParticles;
+        for(let i = 0; i < this.nParticles; i++) {
+            const p = new Particle();
+            p.setRandomPosition(100, [0, 0, 100]);
+            p.setRandomVelocity(5, [0,0,0]);
+            this.s1.push(p);
+        }
+        this.makeParticles(this.s1dot,this.nParticles);
+        this.s2 = [...this.s1];
+
+        const g = new planetGrav(15, 100);
+        this.forces.push(g);
+
+        const r = new planetGrav(-50, 5);
+        this.forces.push(r);
+
+        const a = new Aligner(1, 15);
+        this.forces.push(a);
+
+        const d = new Drag(.1);
+        this.forces.push(d);
+
+        const w = new Wind(.1, 2);
+        this.forces.push(w); 
+        
+        const p1 = new Portal(-100, 100, -100, 100, 0, 1, [0,0,198]);
+        this.limits.push(p1);
+
+        const p2 = new Portal(-100, 100, -100, 100, 199, 200, [0,0,-198]);
+        this.limits.push(p2);
+
+        const p3 = new Portal(-100, -99, -100, 100, 0, 200, [198,0,0]);
+        this.limits.push(p3);
+
+        const p4 = new Portal(99, 100, -100, 100, 0, 200, [-198,0,0]);
+        this.limits.push(p4);
+
+        const p5 = new Portal(-100, 100, -100, -99, 0, 200, [0,198,0]);
+        this.limits.push(p5);
+
+        const p6 = new Portal(-100, 100, 99, 100, 0, 200, [0,-198,-0]);
+        this.limits.push(p6);
+        
+        const min = new MinVel(2);
+        this.limits.push(min);
+
+        const max = new MaxVel(20);
+        this.limits.push(max)   
+
+        const v = new Volume(-100, 100, -100, 100, 0, 200, 1);
+        this.limits.push(v);
+
+        this.modelMatrix.setTranslate(0, -15, 0);
+        this.modelMatrix.scale(.01, .01, .01);
 
         this.initVbos(gl);
     }
@@ -506,14 +559,14 @@ class ParticleSystem {
 
     render(mvpMatrix) {
         const vertexArray = new Float32Array(this.nParticles*7);
-        for(let i = 0; i < this.s1.length; i++) {
-            vertexArray[7*i] = this.s1[i].xPos;
-            vertexArray[7*i+1] = this.s1[i].yPos;
-            vertexArray[7*i+2] = this.s1[i].zPos;
-            vertexArray[7*i+3] = this.s1[i].wPos;
-            vertexArray[7*i+4] = this.s1[i].colorR;
-            vertexArray[7*i+5] = this.s1[i].colorG;
-            vertexArray[7*i+6] = this.s1[i].colorB;
+        for(let i = 0; i < this.s2.length; i++) {
+            vertexArray[7*i] = this.s2[i].xPos;
+            vertexArray[7*i+1] = this.s2[i].yPos;
+            vertexArray[7*i+2] = this.s2[i].zPos;
+            vertexArray[7*i+3] = this.s2[i].wPos;
+            vertexArray[7*i+4] = this.s2[i].colorR;
+            vertexArray[7*i+5] = this.s2[i].colorG;
+            vertexArray[7*i+6] = this.s2[i].colorB;
         }
         this.vboBox.switchToMe();
         this.vboBox.adjust(this.modelMatrix, mvpMatrix);

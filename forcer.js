@@ -7,7 +7,8 @@ const forceTypes = {
     planetGrav:5,
     drag:6,
     tornado:7,
-    brownian:8
+    brownian:8,
+    aligner:9
 }
 
 class CForcer {
@@ -149,11 +150,11 @@ class Burner extends Ager {
         }
     }
     setColor(particle) {
-        if(particle.colorR > .6) {
+        if(particle.colorR > .4) {
             particle.colorR *= .99;
         }
         if(particle.colorG > .05) {
-            particle.colorG *= .99;
+            particle.colorG *= .98;
         }
     }
 }
@@ -161,14 +162,16 @@ class Burner extends Ager {
 class planetGrav extends CForcer {
     forceType = forceTypes.planetGrav;
     gravConst = 6.674e-11;
-    constructor(gravConst) {
+    maxRange = Infinity;
+    constructor(gravConst, range) {
         super();
         this.gravConst = gravConst;
+        this.maxRange = range;
     }
     calcForce(s) {
         for(const p1 of s) {
             for(const p2 of s) {
-                if(p1.index != p2.index) {
+                if(p1.index != p2.index && distance(p1,p2) < this.maxRange) {
                     const directionVec = new Vector3([p2.xPos-p1.xPos, p2.yPos-p1.yPos, p2.zPos-p1.zPos]);
                     const squareDistance = Math.max(directionVec.dot(directionVec), .0001);
                     directionVec.normalize();
@@ -238,6 +241,31 @@ class Brownian extends CForcer {
             p.xfTot += this.maxForce * (2*Math.random()-1);
             p.yfTot += this.maxForce * (2*Math.random()-1);
             p.zfTot += this.maxForce * (2*Math.random()-1);
+        }
+    }
+}
+
+class Aligner extends CForcer{
+    forceType = forceTypes.aligner;
+    alignConst = 0;
+    maxRange = Infinity;
+    constructor(alignConst, range) {
+        super();
+        this.alignConst = alignConst;
+        this.maxRange = range;
+    }
+    calcForce(s) {
+        for(const p1 of s) {
+            for(const p2 of s) {
+                if(p1.index != p2.index && distance(p1,p2) < this.maxRange) {
+                    const directionVec = new Vector3([p2.xPos-p1.xPos, p2.yPos-p1.yPos, p2.zPos-p1.zPos]);
+                    const squareDistance = Math.max(directionVec.dot(directionVec), .0001);
+
+                    p1.xfTot += this.alignConst * p2.xVel / squareDistance;
+                    p1.yfTot += this.alignConst * p2.yVel / squareDistance;
+                    p1.zfTot += this.alignConst * p2.zVel / squareDistance;
+                }
+            }
         }
     }
 }

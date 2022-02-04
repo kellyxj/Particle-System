@@ -4,10 +4,11 @@ const limitTypes = {
     box: 2,
     ageConstraint: 3,
     rope: 4,
-    radius:5
+    radius:5,
+    minVel:6
 }
 
-class CLimit {
+class CLimit {      //all other constraints are derived classes
     limitType = limitTypes.none;
     targetList = [];
     vboBox = new VBObox();
@@ -165,7 +166,7 @@ class FireConstraint extends AgeConstraint {
         p.colorR = 1;
         p.colorG = Math.random()*.7-.5*p.xPos*p.xPos-.5*p.yPos*p.yPos;
         p.colorB = 0;
-        p.setRandomVelocity(2, [0,0, 20]);
+        p.setRandomVelocity(5, [0,0, 30]);
         if(p.zPos < 0) {
             p.zPos = 0;
         }
@@ -181,8 +182,8 @@ class TornadoConstraint extends AgeConstraint {
     }
 }
 
-class Annihilator extends AgeConstraint {
-    constructor(xMin, xMax, yMin, yMax, zMin, zMax) {
+class Portal extends AgeConstraint {
+    constructor(xMin, xMax, yMin, yMax, zMin, zMax, translate) {
         super();
         this.xMin = xMin;
         this.xMax = xMax;
@@ -190,27 +191,20 @@ class Annihilator extends AgeConstraint {
         this.yMax = yMax;
         this.zMin = zMin;
         this.zMax = zMax;
+        this.translationVec = translate;      // 1 means x-direction, 2 means y-direction, 3 means z-direction. 
     }
     markAsKilled(p) {
-        if(p.xPos >= this.xMin && p.xPos <= this.xMax && p.yPos >= this.yMin && p.yPos <= this.yMax && p.zPos >= this.zMin && p.zPos <= this.zMax) {
-            p.age = -1;
+        if(this.targetList.length == 0 || this.targetList.find(index => index == p.index)) {
+            if(p.xPos >= this.xMin && p.xPos <= this.xMax && p.yPos >= this.yMin && p.yPos <= this.yMax && p.zPos >= this.zMin && p.zPos <= this.zMax) {
+                p.age = -1;
+            }
         }
     }
-    emitParticle(p) {
-        
-    }
-}
-
-class SnowConstraint extends Annihilator {
     emitParticle(p) {
         p.age = 0;
-        p.zPos = 19.9;
-        if(p.zVel > 0) {
-            p.zVel = 0;
-        }
-        if(Math.random() < .1) {
-            this.targetList = this.targetList.filter(index => index == p.index);
-        }
+        p.xPos += this.translationVec[0];
+        p.yPos += this.translationVec[1];
+        p.zPos += this.translationVec[2];
     }
 }
 
@@ -286,6 +280,40 @@ class Radius extends CLimit {
                     p.zVel += dotProduct2 * reverseDirectionVec.elements[2];
                 }
             }
+        }
+    }
+}
+
+class MinVel extends CLimit {
+    minVel = 1;
+    constructor(min) {
+        super()
+        this.minVel = min;
+    }
+    applyLimit(s, particlePrev, particle) {
+        const squareVel = particle.xVel * particle.xVel + particle.yVel * particle.yVel + particle.zVel * particle.zVel;
+        if(squareVel < this.minVel * this.minVel) {
+            const scaleAmount = Math.sqrt(this.minVel * this.minVel / (squareVel + 0.0001));
+            particle.xVel *= scaleAmount;
+            particle.yVel *= scaleAmount;
+            particle.zVel *= scaleAmount;
+        }
+    }
+}
+
+class MaxVel extends CLimit {
+    maxVel = 10;
+    constructor(max) {
+        super()
+        this.maxVel = max;
+    }
+    applyLimit(s, particlePrev, particle) {
+        const squareVel = particle.xVel * particle.xVel + particle.yVel * particle.yVel + particle.zVel * particle.zVel;
+        if(squareVel > this.maxVel * this.maxVel) {
+            const scaleAmount = Math.sqrt(this.maxVel * this.maxVel  / (squareVel+ 0.0001));
+            particle.xVel *= scaleAmount;
+            particle.yVel *= scaleAmount;
+            particle.zVel *= scaleAmount;
         }
     }
 }
