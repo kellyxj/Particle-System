@@ -14,6 +14,8 @@ const forceTypes = {
 class CForcer {
     forceType = forceTypes.none;
     targetList = [];        //indices of all particles that the force should be applied to
+    renderOn = true;
+    vboBox = new VBObox();
     constructor(targets) {
         if(targets) {
             this.addTargets(targets);
@@ -28,6 +30,17 @@ class CForcer {
     }
     applyForce(particle) {
 
+    }
+    initVbo(gl) {
+
+    }
+    checkRender(modelMatrix, mvpMatrix) {
+        if(this.renderOn) {
+            this.render(modelMatrix, mvpMatrix);
+        }
+    }
+    render(modelMatrix, mvpMatrix) {
+        
     }
     addTarget(p) {
         if(!this.targetList.find(index => p.index == index)) {
@@ -75,6 +88,8 @@ class Spring extends CForcer {
     K_spring = 3;
     restLength = 5;
     K_damp = .4;
+    position1;
+    position2;
     constructor(index1, index2, K_spring, restLength, K_damp) {
         super();
         this.e1 = index1;
@@ -89,9 +104,11 @@ class Spring extends CForcer {
         for(const particle of s) {
             if(particle.index == this.e1) {
                 first = particle;
+                this.position1 = [particle.xPos, particle.yPos, particle.zPos, particle.wPos];
             }
             else if(particle.index == this.e2) {
                 second = particle;
+                this.position2 = [particle.xPos, particle.yPos, particle.zPos, particle.wPos];
             }
         }
         for(const particle of s) {
@@ -122,6 +139,24 @@ class Spring extends CForcer {
             particle.yfTot -= dotProduct * this.K_damp * forceDirection.elements[1];
             particle.zfTot -= dotProduct * this.K_damp * forceDirection.elements[2];
         }
+        
+    }
+    initVbo(gl) {
+        const vertices = new Float32Array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        this.vboBox.init(gl, vertices, 2);
+        this.vboBox.drawMode = gl.LINES;
+    }
+    render(modelMatrix, mvpMatrix) {
+        if(this.render) {
+
+        }
+        this.vboBox.switchToMe();
+        const vertices = new Float32Array([this.position1[0], this.position1[1], this.position1[2], this.position1[3], 1, 1, 1,
+                                            this.position2[0], this.position2[1], this.position2[2],this.position2[3], 1, 1, 1]);
+        this.vboBox.vboContents = vertices;
+        this.vboBox.reload();
+        this.vboBox.adjust(modelMatrix, mvpMatrix);
+        this.vboBox.draw();
     }
 }
 
@@ -244,7 +279,7 @@ class Tornado extends CForcer {
                 p.zfTot += 30;
             }
         }
-        if(d < Math.min(p.zPos,20)) {
+        if(d < Math.max(1,(p.zPos * p.zPos)/500)) {
             p.xfTot += 100*p.yPos/d;
             p.yfTot -= 100*p.xPos/d;
             p.zfTot += 500/d;
@@ -254,8 +289,8 @@ class Tornado extends CForcer {
             p.yfTot -= 500*p.yPos/d;
         }
         p.zfTot += 1/(p.xPos+p.yPos+.01)+4.2021;
-        if(p.zPos < 20) {
-            p.zfTot += 20;
+        if(p.zPos < 5) {
+            p.zfTot = 0;
         }
     }
 }

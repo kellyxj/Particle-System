@@ -112,13 +112,14 @@ class ParticleSystem {
         
         for(var i = 0; i < numParticles; i++) {
             const p = new Particle();
-            p.setRandomPosition(15, [0,0,50]);
+            p.setRandomPosition(50, [0,0,0]);
+            p.zPos = 0;
             const randomVar = Math.random();
             p.colorR = .3+randomVar*.2;
             p.colorG = .3+randomVar*.2;
             p.colorB = .3+randomVar*.2;
             p.setRandomVelocity(3, [0,0,0]);
-            p.age = Math.floor(Math.random() * 1000);
+            p.age = Math.floor(Math.random() * 1500);
 
             this.s1.push(p);
         }
@@ -298,6 +299,7 @@ class ParticleSystem {
             this.s1.push(p);
             if(i != 0) {
                 const s = new Spring(this.s1[i].index, this.s1[i-1].index, .0005, 1, .99);
+                s.renderOn = false;     //rendering disabled for performance
                 this.forces.push(s);
                 const r = new Rope(this.s1[i].index, this.s1[i-1].index, 1.1);
                 this.limits.push(r);
@@ -453,6 +455,10 @@ class ParticleSystem {
         this.vboBox.init(gl, vertexArray, this.nParticles);
         this.vboBox.drawMode = gl.POINTS;
 
+        for(const force of this.forces) {
+            force.initVbo(gl);
+        }
+
         for(const constraint of this.limits) {
             constraint.initVbo(gl);
         }
@@ -592,8 +598,11 @@ class ParticleSystem {
             vertexArray[7*i+5] = this.s2[i].colorG;
             vertexArray[7*i+6] = this.s2[i].colorB;
         }
+        for(const force of this.forces) {
+            force.checkRender(this.modelMatrix,mvpMatrix);
+        }
         for(const constraint of this.limits) {
-            constraint.render(this.modelMatrix, mvpMatrix);
+            constraint.checkRender(this.modelMatrix, mvpMatrix);
         }
         this.vboBox.switchToMe();
         this.vboBox.adjust(this.modelMatrix, mvpMatrix);

@@ -11,6 +11,7 @@ const limitTypes = {
 class CLimit {      //all other constraints are derived classes
     limitType = limitTypes.none;
     targetList = [];
+    renderOn = true;
     vboBox = new VBObox();
     doLimit(s1, particlePrev, particle) {
         if(this.targetList.length == 0 || this.targetList.find(target => target == particle.index)) {
@@ -23,7 +24,12 @@ class CLimit {      //all other constraints are derived classes
     initVbo(gl) {
 
     }
-    render() {
+    checkRender(modelMatrix, mvpMatrix) {
+        if(this.renderOn) {
+            this.render(modelMatrix,mvpMatrix);
+        }
+    }
+    render(modelMatrix, mvpMatrix) {
         
     }
     addTarget(p) {
@@ -209,7 +215,8 @@ class FireConstraint extends AgeConstraint {
 
 class TornadoConstraint extends AgeConstraint {
     emitParticle(p) {
-        p.setRandomPosition(15, [0,0,50]);
+        p.setRandomPosition(50, [0,0,0]);
+        p.zPos = 0;
         p.setRandomVelocity(3, [0,0,0]);
         p.age = Math.floor(Math.random() * this.maxAge);
     }
