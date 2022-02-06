@@ -187,7 +187,7 @@ class planetGrav extends CForcer {
     }
 }
 
-class Drag extends CForcer {
+class Drag extends CForcer {        //laminar flow: drag force proportional to -velocity
     forceType = forceTypes.drag;
     dragConst = .05;
     constructor(dragAmount) {
@@ -201,6 +201,39 @@ class Drag extends CForcer {
     }
 }
 
+class Turbulence extends CForcer {      //turbulent flow: drag force proportional to -velocity^2
+    forceType = forceTypes.drag;
+    dragConst = .01;
+    minVel = 100;
+    constructor(dragAmount, minVel) {
+        super();
+        this.dragConst = dragAmount;
+        this.minVel = minVel;
+    }
+    applyForce(p) {
+        if (p.xVel * p.xVel + p.yVel * p.yVel + p.zVel * p.zVel > this.minVel){
+            if(p.xVel > 0) {
+                p.xfTot -= (this.dragConst * p.xVel * p.xVel +.0001);
+            }
+            else {
+                p.xfTot += (this.dragConst * p.xVel * p.xVel +.0001);
+            }
+            if(p.yVel > 0) {
+                p.yfTot -= (this.dragConst * p.yVel * p.yVel +.0001);
+            }
+            else {
+                p.yfTot += (this.dragConst * p.yVel * p.yVel +.0001);
+            }
+            if(p.zVel > 0) {
+                p.zfTot -= (this.dragConst * p.zVel * p.zVel +.0001);
+            }
+            else {
+                p.zfTot += (this.dragConst * p.zVel * p.zVel +.0001);
+            }
+        }
+    }
+}
+
 class Tornado extends CForcer {
     forceType = forceTypes.tornado;
     applyForce(p) {
@@ -209,11 +242,11 @@ class Tornado extends CForcer {
         if(d < 2) {
             if(p.zPos < 80){
                 p.zfTot += 30;
-                }
+            }
         }
         if(d < Math.min(p.zPos,20)) {
             p.xfTot += 100*p.yPos/d;
-             p.yfTot -= 100*p.xPos/d;
+            p.yfTot -= 100*p.xPos/d;
             p.zfTot += 500/d;
         }
         else {

@@ -136,6 +136,9 @@ class ParticleSystem {
         const d = new Drag(.15);
         this.forces.push(d);
 
+        const d2 = new Turbulence(.01, 35);
+        this.forces.push(d2);
+
         const a = new Ager();
         this.forces.push(a);
 
@@ -163,7 +166,7 @@ class ParticleSystem {
             p.colorR = 1;
             p.colorG = Math.random()*.7-.5*p.xPos*p.xPos-.5*p.yPos*p.yPos;
             p.colorB = 0;
-            p.setRandomVelocity(5, [0,0,30]);
+            p.setRandomVelocity(5, [0,0,20]);
             p.age = Math.floor(Math.random()*300);
 
             this.s1.push(p);
@@ -250,26 +253,32 @@ class ParticleSystem {
         this.initVbos(gl);
     }
 
-    initPlanets(gl) {
-        this.nParticles = 2;
+    initPlanets(gl, numParticles) {
+        this.nParticles = numParticles;
         const p1 = new Particle();
         p1.setRandomPosition(0, [0, 0, 10]);
-        p1.mass = 10000;
+        p1.mass = 1000;
         p1.colorB = 0;
         p1.colorG = 0;
-        const p2 = new Particle();
-        p2.setRandomPosition(0, [0, 50, 10]);
-        p2.mass = 1;
-        p2.setRandomVelocity(0, [-20, 0, 0]);
 
         this.s1.push(p1);
-        this.s1.push(p2);
+
+        for(let i = 1; i < this.nParticles; i++) {
+            const p = new Particle;
+            p.setRandomPosition(0, [30, 0, 10]);
+            p.zPos = 10;
+            p.setRandomVelocity(0, [0,10,0]);
+            p.zVel = 0;
+            this.s1.push(p);
+        }
+
+        this.makeParticles(this.s1dot, this.nParticles);
 
         this.s2 = [...this.s1];
 
         this.makeParticles(this.s1dot, 2);
 
-        const f = new planetGrav(1);
+        const f = new planetGrav(1, Infinity);
         this.forces.push(f);
 
         const volume = new Volume(-100, 100, -100, 100, 0, 20, 1);
@@ -319,14 +328,17 @@ class ParticleSystem {
         this.initVbos(gl);
     }
 
-    initSnow(gl, numParticles) {
+    initRain(gl, numParticles) {
         this.nParticles = numParticles;
         for(let i = 0; i < this.nParticles; i++) {
             const p = new Particle();
             //p.colorR = 0;
             //p.colorG = 0;
-            p.setRandomPosition(15, [0, 0, 10]);
+            p.setRandomPosition(10, [0, 0, 10]);
             p.setRandomVelocity(1, [0,0,0]);
+            p.colorR = .1;
+            p.colorG = .1;
+            p.colorB = .6 + .4 * Math.random();
             this.s1.push(p);
         }
         this.makeParticles(this.s1dot, this.nParticles);
@@ -336,14 +348,19 @@ class ParticleSystem {
         this.forces.push(b);
 
         const g = new earthGrav();
-        g.gravConst = 1;
         this.forces.push(g);
 
         const d = new Drag(.5);
         this.forces.push(d);
 
+        const d2 = new Turbulence(.01, 35);
+        this.forces.push(d2);
+
         const v = new Volume(-10, 10, -10, 10, 0, 20, 0);
         this.limits.push(v);
+
+        const ball = new Ball(9, [0, 0, 10]);
+        this.limits.push(ball);
 
         const a = new Portal(-10, 10, -10, 10, 0, 0, [0, 0, 19.9]);
         this.limits.push(a);
@@ -360,6 +377,10 @@ class ParticleSystem {
             const p = new Particle();
             p.setRandomPosition(100, [0, 0, 100]);
             p.setRandomVelocity(5, [0,0,0]);
+            const randAmount = Math.random() * .1;
+            p.colorR = 0.8 + randAmount;
+            p.colorG = 0.8 + randAmount;
+            p.colorB = 0.8 + randAmount;
             this.s1.push(p);
         }
         this.makeParticles(this.s1dot,this.nParticles);
@@ -368,7 +389,7 @@ class ParticleSystem {
         const g = new planetGrav(15, 100);
         this.forces.push(g);
 
-        const r = new planetGrav(-50, 5);
+        const r = new planetGrav(-50, 10);
         this.forces.push(r);
 
         const a = new Aligner(1, 15);
@@ -376,6 +397,9 @@ class ParticleSystem {
 
         const d = new Drag(.1);
         this.forces.push(d);
+
+        const d2 = new Turbulence(.01, 35);
+        this.forces.push(d2);
 
         const w = new Wind(.1, 2);
         this.forces.push(w); 
@@ -552,7 +576,7 @@ class ParticleSystem {
             for(const limit of this.limits) {
                 const particle = this.s2[i];
                 const particlePrev = this.s1[i];
-                limit.applyLimit(this.s1, particlePrev, particle);
+                limit.doLimit(this.s1, particlePrev, particle);
             }
         }
     }
@@ -568,14 +592,15 @@ class ParticleSystem {
             vertexArray[7*i+5] = this.s2[i].colorG;
             vertexArray[7*i+6] = this.s2[i].colorB;
         }
+        for(const constraint of this.limits) {
+            constraint.render(this.modelMatrix, mvpMatrix);
+        }
         this.vboBox.switchToMe();
         this.vboBox.adjust(this.modelMatrix, mvpMatrix);
         this.vboBox.vboContents = vertexArray;
         this.vboBox.reload();
         this.vboBox.draw();
-        for(const constraint of this.limits) {
-            constraint.render(this.modelMatrix, mvpMatrix);
-        }
+        
     }
 
     print() {

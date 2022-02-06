@@ -20,7 +20,7 @@ var g_timeStepMin = g_timeStep;   //holds min,max timestep values since last key
 var g_timeStepMax = g_timeStep;
 
 //camera control
-var eyePosition = [-15, 15, 2];
+var eyePosition = [-15, -10, 2];
 var panAngle = 0;
 var tiltAngle = 0;
 var inverted = false;
@@ -206,10 +206,10 @@ function main() {
 
   partSys1.initTornado(gl, 1000);
   partSys2.initFire(gl, 1600);
-  partSys3.initPlanets(gl);
+  partSys3.initPlanets(gl, 2);
   partSys4.initSpring(gl);
   partSys5.initCloth(gl, 50);
-  partSys6.initSnow(gl, 500);
+  partSys6.initRain(gl, 1000);
   partSys7.initBoids(gl, 400);
   particleSystems.push(partSys1);
   particleSystems.push(partSys2);
