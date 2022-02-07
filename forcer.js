@@ -40,7 +40,7 @@ class CForcer {
         }
     }
     render(modelMatrix, mvpMatrix) {
-        
+
     }
     addTarget(p) {
         if(!this.targetList.find(index => p.index == index)) {
@@ -279,7 +279,7 @@ class Tornado extends CForcer {
                 p.zfTot += 30;
             }
         }
-        if(d < Math.max(1,(p.zPos * p.zPos)/500)) {
+        if(d < Math.max(10,(p.zPos * p.zPos)/500)) {
             p.xfTot += 100*p.yPos/d;
             p.yfTot -= 100*p.xPos/d;
             p.zfTot += 500/d;
@@ -317,10 +317,11 @@ class Aligner extends CForcer{
     forceType = forceTypes.aligner;
     alignConst = 0;
     maxRange = Infinity;
-    constructor(alignConst, range) {
+    constructor(alignConst, range, fov) {
         super();
         this.alignConst = alignConst;
         this.maxRange = range;
+        this.fov = fov;
     }
     calcForce(s) {
         for(const p1 of s) {
@@ -328,10 +329,15 @@ class Aligner extends CForcer{
                 if(p1.index != p2.index && distance(p1,p2) < this.maxRange) {
                     const directionVec = new Vector3([p2.xPos-p1.xPos, p2.yPos-p1.yPos, p2.zPos-p1.zPos]);
                     const squareDistance = Math.max(directionVec.dot(directionVec), .0001);
-
-                    p1.xfTot += this.alignConst * p2.xVel / squareDistance;
-                    p1.yfTot += this.alignConst * p2.yVel / squareDistance;
-                    p1.zfTot += this.alignConst * p2.zVel / squareDistance;
+                    const velocityVec = new Vector3([p1.xVel, p1.yVel, p2.yVel]);
+                    directionVec.normalize();
+                    velocityVec.normalize();
+                    
+                    if(velocityVec.dot(directionVec) > Math.cos(2 * this.fov * Math.PI/180)) {
+                        p1.xfTot += this.alignConst * p2.xVel / squareDistance;
+                        p1.yfTot += this.alignConst * p2.yVel / squareDistance;
+                        p1.zfTot += this.alignConst * p2.zVel / squareDistance;
+                    }
                 }
             }
         }

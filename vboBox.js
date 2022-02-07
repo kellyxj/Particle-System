@@ -274,7 +274,7 @@ function makeGroundGrid() {
       return cubeVerts;
   }
 
-function makeSphere(r, center) {
+function makeSphere(r, center, colorVec) {
         //==============================================================================
         // Make a sphere from one TRIANGLE_STRIP drawing primitive,  using the
         // 'stepped spiral' design (Method 2) described in the class lecture notes.   
@@ -299,7 +299,7 @@ function makeSphere(r, center) {
                                                 // (HINT: odd# or prime#s help avoid accidental symmetry)
           var topColr = new Float32Array([1.0, 1.0, 1.0]);	// South Pole: dark-gray
           var botColr = new Float32Array([1.0, 1.0, 1.0]);	// North Pole: light-gray.
-          var errColr = new Float32Array([1.0, 1.0, 1.0]);	// Bright-red trouble colr
+          var errColr = new Float32Array(colorVec);	// Bright-red trouble colr
           var sliceAngle = Math.PI/slices;	// One slice spans this fraction of the 
           // 180 degree (Pi radian) lattitude angle between south pole and north pole.
         
@@ -378,3 +378,134 @@ function makeSphere(r, center) {
             }
             return sphVerts;
         }
+
+        function makeCylinder(r, center, h, colorVec) {
+            //==============================================================================
+            // Make a cylinder shape from one TRIANGLE_STRIP drawing primitive, using the
+            // 'stepped spiral' design (Method 2) described in the class lecture notes.
+            // Cylinder center at origin, encircles z axis, radius 1, top/bottom at z= +/-1.
+            //
+            
+             var topColr = new Float32Array([0.8, 0.8, 0.0]);	// light yellow top,
+             var walColr = new Float32Array([0.2, 0.6, 0.2]);	// dark green walls,
+             var botColr = new Float32Array([0.2, 0.3, 0.7]);	// light blue bottom,
+             var ctrColr = new Float32Array(colorVec); // near black end-cap centers,
+             var errColr = new Float32Array([1.0, 0.2, 0.2]);	// Bright-red trouble color.
+            
+             var capVerts = 15;	// # of vertices around the topmost 'cap' of the shape
+             var topRadius = r;		// radius of top of cylinder (bottom is always 1.0)
+             var floatsPerVertex = 7;
+             // Create a (global) array to hold all of this cylinder's vertices;
+             var cylVerts = new Float32Array(  ((capVerts*6) -2) * floatsPerVertex);
+             // # of vertices * # of elements needed to store them. How many vertices?
+                                                    // Cylinder bottom end-cap:   (2*capVerts) -1  vertices;
+                                                     // (includes blue transition-edge that links end-cap & wall);
+                                                     // + Cylinder wall requires   (2*capVerts) vertices;
+                                                     // + Cylinder top end-cap:    (2*capVerts) -1 vertices
+                                                     // (includes green transition-edge that links wall & endcap).
+            
+                // Create circle-shaped bottom cap of cylinder at z=-1.0, radius 1.0,
+                // with (capVerts*2)-1 vertices, BUT STOP before you create it's last vertex.
+                // That last vertex forms the 'transition' edge from the bottom cap to the 
+                // wall (shown in blue in lecture notes), & we make it in the next for() loop.
+                // 
+                // v counts vertices: j counts array elements (vertices * elements per vertex)
+                for(v=0,j=0;   v<(2*capVerts)-1;   v++,j+=floatsPerVertex) {	
+                    // START at vertex v = 0; on x-axis on end-cap's outer edge, at xyz = 1,0,-1.
+                    // END at the vertex 2*(capVerts-1), the last outer-edge vertex before 
+                    // we reach the starting vertex at 1,0,-1. 
+                    if(v%2 ==0)
+                    {				// put even# vertices around bottom cap's outer edge,starting at v=0.
+                                    // visit each outer-edge location only once; don't return to 
+                                    // to the location of the v=0 vertex (at 1,0,-1).
+                                    // x,y,z,w == cos(theta),sin(theta),-1.0, 1.0, 
+                                    // 		where	theta = 2*PI*((v/2)/capVerts) = PI*v/capVerts
+                        cylVerts[j  ] = r*Math.cos(Math.PI*v/capVerts)+center[0];			// x
+                        cylVerts[j+1] = r*Math.sin(Math.PI*v/capVerts)+center[1];			// y
+                        //	(Why not 2*PI? because 0 < =v < 2*capVerts,
+                        //	 so we can simplify cos(2*PI * (v/(2*capVerts))
+                        cylVerts[j+2] =center[2];	// z
+                        cylVerts[j+3] = 1.0;	// w.
+                        // r,g,b = botColr[] 
+                        cylVerts[j+4]=errColr[0]; 
+                        cylVerts[j+5]=errColr[1]; 
+                        cylVerts[j+6]=errColr[2];
+                    }
+                    else {	// put odd# vertices at center of cylinder's bottom cap:
+                        cylVerts[j  ] = center[0]; 			// x,y,z,w == 0,0,-1,1; centered on z axis at -1.
+                        cylVerts[j+1] = center[1];	
+                        cylVerts[j+2] =center[2]; 
+                        cylVerts[j+3] = 1.0;			// r,g,b = ctrColr[]
+                        cylVerts[j+4]=errColr[0]; 
+                        cylVerts[j+5]=errColr[1]; 
+                        cylVerts[j+6]=errColr[2];
+                    }
+                }
+                // Create the cylinder side walls, made of 2*capVerts vertices.
+                // v counts vertices within the wall; j continues to count array elements
+                // START with the vertex at 1,0,-1 (completes the cylinder's bottom cap;
+                // completes the 'transition edge' drawn in blue in lecture notes).
+                for(v=0; v< 2*capVerts;   v++, j+=floatsPerVertex) {
+                    if(v%2==0)	// count verts from zero again, 
+                                            // and put all even# verts along outer edge of bottom cap:
+                    {		
+                            cylVerts[j  ] = r*Math.cos(Math.PI*(v)/capVerts)+center[0];		// x
+                            cylVerts[j+1] = r*Math.sin(Math.PI*(v)/capVerts)+center[1];		// y
+                            cylVerts[j+2] =center[2];	// ==z  BOTTOM cap,
+                            cylVerts[j+3] = 1.0;	// w.
+                            // r,g,b = walColr[]				
+                            cylVerts[j+4]=errColr[0]; 
+                            cylVerts[j+5]=errColr[1]; 
+                            cylVerts[j+6]=errColr[2];			
+                        if(v==0) {		// UGLY TROUBLESOME vertex--shares its 1 color with THREE
+                                                    // triangles; 1 in cap, 1 in step, 1 in wall.
+                                cylVerts[j+4] = errColr[0]; 
+                                cylVerts[j+5] = errColr[1];
+                                cylVerts[j+6] = errColr[2];		// (make it red; see lecture notes)
+                            }
+                    }
+                    else		// position all odd# vertices along the top cap (not yet created)
+                    {
+                            cylVerts[j  ] = r * Math.cos(Math.PI*(v-1)/capVerts) + center[0];		// x
+                            cylVerts[j+1] = r * Math.sin(Math.PI*(v-1)/capVerts) + center[1];		// y
+                            cylVerts[j+2] = center[2] + h;	// == z TOP cap,
+                            cylVerts[j+3] = 1.0;	// w.
+                            // r,g,b = walColr;
+                            cylVerts[j+4]=errColr[0]; 
+                            cylVerts[j+5]=errColr[1]; 
+                            cylVerts[j+6]=errColr[2];			
+                    }
+                }
+                // Complete the cylinder with its top cap, made of 2*capVerts -1 vertices.
+                // v counts the vertices in the cap; j continues to count array elements.
+                for(v=0; v < (2*capVerts -1); v++, j+= floatsPerVertex) {
+                    // count vertices from zero again, and
+                    if(v%2==0) {	// position even #'d vertices around top cap's outer edge.
+                        cylVerts[j  ] = r * Math.cos(Math.PI*(v)/capVerts) + center[0];		// x
+                        cylVerts[j+1] = r * Math.sin(Math.PI*(v)/capVerts) + center[1];		// y
+                        cylVerts[j+2] = center[2]+h;	// z
+                        cylVerts[j+3] = 1.0;	// w.
+                        // r,g,b = topColr[]
+                        cylVerts[j+4]=errColr[0]; 
+                        cylVerts[j+5]=errColr[1]; 
+                        cylVerts[j+6]=errColr[2];
+                        if(v==0) {	// UGLY TROUBLESOME vertex--shares its 1 color with THREE
+                                                    // triangles; 1 in cap, 1 in step, 1 in wall.
+                                cylVerts[j+4] = errColr[0]; 
+                                cylVerts[j+5] = errColr[1];
+                                cylVerts[j+6] = errColr[2];		// (make it red; see lecture notes)
+                        }		
+                    }
+                    else {				// position odd#'d vertices at center of the top cap:
+                        cylVerts[j  ] = 0.0; 			// x,y,z,w == 0,0,-1,1
+                        cylVerts[j+1] = 0.0;	
+                        cylVerts[j+2] = center[2]+h; 
+                        cylVerts[j+3] = 1.0;			
+                        // r,g,b = topColr[]
+                        cylVerts[j+4]=errColr[0]; 
+                        cylVerts[j+5]=errColr[1]; 
+                        cylVerts[j+6]=errColr[2];
+                    }
+                }
+                return cylVerts;
+            }

@@ -1,11 +1,14 @@
 const limitTypes = {
     none: 0,
     volume: 1,
-    ball: 2,
-    ageConstraint: 3,
-    rope: 4,
-    radius:5,
-    minVel:6
+    sphereVol: 2,
+    cylinderVol: 3,
+    ball: 4,
+    ageConstraint: 5,
+    rope: 6,
+    radius:7,
+    minVel:8,
+    maxVel: 9
 }
 
 class CLimit {      //all other constraints are derived classes
@@ -30,7 +33,7 @@ class CLimit {      //all other constraints are derived classes
         }
     }
     render(modelMatrix, mvpMatrix) {
-        
+
     }
     addTarget(p) {
         if(!this.targetList.find(index => p.index == index)) {
@@ -140,11 +143,107 @@ class Volume extends CLimit {
     }
 }
 
-class Ball extends CLimit {
-    limitType = limitTypes.ball;
-    constructor(r, center) {
+class SphereVol extends CLimit {
+    limitType = limitTypes.sphereVol;
+    constructor(r,center,k) {
         super();
         this.radius = r;
+        this.K_resti = k;
+        this.centerX = center[0];
+        this.centerY = center[1];
+        this.centerZ = center[2];
+    }
+    applyLimit(s, particlePrev, particle) {
+        const directionVec = new Vector3([this.centerX - particle.xPos, this.centerY - particle.yPos, this.centerZ- particle.zPos]);
+        const d = Math.sqrt(directionVec.dot(directionVec));
+        if(d > this.radius) {
+            directionVec.normalize();
+            particle.xPos += (d-this.radius) * directionVec.elements[0];
+            particle.yPos += (d-this.radius) * directionVec.elements[1];
+            particle.zPos += (d-this.radius) * directionVec.elements[2];
+            const reverseDirectionVec = new Vector3([-directionVec.elements[0], -directionVec.elements[1], -directionVec.elements[2]]);
+            const velocityVec = new Vector3([particle.xVel, particle.yVel, particle.zVel]);
+            const dotProduct = velocityVec.dot(reverseDirectionVec);
+            particle.xVel += 2 * this.K_resti * dotProduct * directionVec.elements[0];
+            particle.yVel += 2 * this.K_resti * dotProduct * directionVec.elements[1];
+            particle.zVel += 2 * this.K_resti * dotProduct * directionVec.elements[2];
+        }
+    }
+    initVbo(gl) {
+        const vertices = makeSphere(this.radius, [this.centerX, this.centerY, this.centerZ], [1, 0, 0]);
+        this.vboBox.init(gl, vertices, vertices.length/7);
+        this.vboBox.drawMode = gl.LINE_LOOP;
+    }
+    render(modelMatrix, mvpMatrix) {
+        this.vboBox.switchToMe();
+        this.vboBox.adjust(modelMatrix, mvpMatrix);
+        this.vboBox.draw();
+    }
+}
+
+class CylinderVol extends CLimit {
+    limitType = limitTypes.cylinderVol;
+    constructor(r, center, h, k) {      //here, "center" means center of the bottom face of the cylinder
+        super();
+        this.radius = r;
+        this.height = h;
+        this.centerX = center[0];
+        this.centerY = center[1];
+        this.centerZ = center[2];
+        this.K_resti = k;
+    }
+    applyLimit(s, particlePrev, particle) {
+        if(particle.zPos < this.centerZ) {
+            particle.zPos = this.centerZ;
+            if(particle.zVel < 0) {
+                particle.zVel = -this.K_resti * particle.zVel;
+            }
+            else {
+                particle.zVel = this.K_resti * particle.zVel;
+            }
+        }
+        if(particle.zPos > this.centerZ+this.height) {
+            particle.zPos = this.centerZ+this.height;
+            if(particle.zVel > 0) {
+                particle.zVel = -this.K_resti * particle.zVel;
+            }
+            else {
+                particle.zVel = this.K_resti * particle.zVel;
+            }
+        }
+        const directionVec = new Vector3([this.centerX-particle.xPos, this.centerY-particle.yPos, 0]);
+        const d = Math.sqrt(directionVec.dot(directionVec));
+        if(d > this.radius) {
+            directionVec.normalize();
+            particle.xPos += (d-this.radius) * directionVec.elements[0];
+            particle.yPos += (d-this.radius) * directionVec.elements[1];
+
+            const reverseDirectionVec = new Vector3([-directionVec.elements[0], -directionVec.elements[1], 0]);
+            const velocityVec = new Vector3([particle.xVel, particle.yVel, 0]);
+            const dotProduct = velocityVec.dot(reverseDirectionVec);
+            particle.xVel += 2 * this.K_resti * dotProduct * directionVec.elements[0];
+            particle.yVel += 2 * this.K_resti * dotProduct * directionVec.elements[1];
+            particle.zVel += 2 * this.K_resti * dotProduct * directionVec.elements[2];
+        }
+    }
+    initVbo(gl) {
+        const vertices = makeCylinder(this.radius, [this.centerX, this.centerY, this.centerZ], this.height, [1, 0, 0]);
+        this.vboBox.init(gl, vertices, vertices.length/7);
+        this.vboBox.drawMode = gl.LINE_LOOP;
+    }
+    render(modelMatrix, mvpMatrix) {
+        this.vboBox.switchToMe();
+        this.vboBox.adjust(modelMatrix, mvpMatrix);
+        this.vboBox.draw();
+    }
+}
+
+class Ball extends CLimit {
+    limitType = limitTypes.ball;
+    constructor(r, center, k) {
+        super();
+        this.radius = r;
+        this.K_resti = k;
         this.centerX = center[0];
         this.centerY = center[1];
         this.centerZ = center[2];
@@ -160,13 +259,13 @@ class Ball extends CLimit {
             const reverseDirectionVec = new Vector3([-directionVec.elements[0], -directionVec.elements[1], -directionVec.elements[2]]);
             const velocityVec = new Vector3([particle.xVel, particle.yVel, particle.zVel]);
             const dotProduct = velocityVec.dot(reverseDirectionVec);
-            particle.xVel += dotProduct * directionVec.elements[0];
-            particle.yVel += dotProduct * directionVec.elements[1];
-            particle.zVel += dotProduct * directionVec.elements[2];
+            particle.xVel += 2 * this.K_resti * dotProduct * directionVec.elements[0];
+            particle.yVel += 2 * this.K_resti * dotProduct * directionVec.elements[1];
+            particle.zVel += 2 * this.K_resti * dotProduct * directionVec.elements[2];
         }
     }
     initVbo(gl) {
-        const vertices = makeSphere(this.radius, [this.centerX, this.centerY, this.centerZ]);
+        const vertices = makeSphere(this.radius, [this.centerX, this.centerY, this.centerZ], [1,1,1]);
         this.vboBox.init(gl, vertices, vertices.length/7);
         this.vboBox.drawMode = gl.LINE_LOOP;
     }
@@ -190,6 +289,10 @@ class AgeConstraint extends CLimit {
             this.emitParticle(particle);
         }
     }
+    setInitPos(pos) {
+        this.initial = true;
+        this.initialPosition = pos;
+    }
     markAsKilled(p) {
 
     }
@@ -202,20 +305,18 @@ class FireConstraint extends AgeConstraint {
     emitParticle(p) {
         p.mass = 1;
         p.setRandomPosition(1, [0,0,0]);
+        p.zPos = 0;
         p.colorR = 1;
         p.colorG = Math.random()*.7-.5*p.xPos*p.xPos-.5*p.yPos*p.yPos;
         p.colorB = 0;
         p.setRandomVelocity(5, [0,0, 20]);
-        if(p.zPos < 0) {
-            p.zPos = 0;
-        }
         p.age = Math.floor(Math.random() * this.maxAge);
     }
 }
 
 class TornadoConstraint extends AgeConstraint {
     emitParticle(p) {
-        p.setRandomPosition(50, [0,0,0]);
+        p.setRandomPosition(100, [0,0,0]);
         p.zPos = 0;
         p.setRandomVelocity(3, [0,0,0]);
         p.age = Math.floor(Math.random() * this.maxAge);
@@ -223,6 +324,7 @@ class TornadoConstraint extends AgeConstraint {
 }
 
 class Portal extends AgeConstraint {
+    
     constructor(xMin, xMax, yMin, yMax, zMin, zMax, translate) {
         super();
         this.xMin = xMin;
@@ -231,7 +333,7 @@ class Portal extends AgeConstraint {
         this.yMax = yMax;
         this.zMin = zMin;
         this.zMax = zMax;
-        this.translationVec = translate;      // 1 means x-direction, 2 means y-direction, 3 means z-direction. 
+        this.translationVec = translate;
     }
     markAsKilled(p) {
         if(this.targetList.length == 0 || this.targetList.find(index => index == p.index)) {
@@ -240,11 +342,19 @@ class Portal extends AgeConstraint {
             }
         }
     }
+    
     emitParticle(p) {
         p.age = 0;
-        p.xPos += this.translationVec[0];
-        p.yPos += this.translationVec[1];
-        p.zPos += this.translationVec[2];
+        if(this.initial) {
+            p.xPos = this.initialPosition[0];
+            p.yPos = this.initialPosition[1];
+            p.zPos = this.initialPosition[2];
+        }
+        else {
+            p.xPos += this.translationVec[0];
+            p.yPos += this.translationVec[1];
+            p.zPos += this.translationVec[2];
+        }
     }
 }
 
@@ -289,10 +399,11 @@ class Rope extends CLimit {
 class Radius extends CLimit {
     limitType = limitTypes.radius;
     minDistance = 1;
-    constructor(index1, index2) {
+    constructor(index1, index2, r) {
         super();
         this.e1 = index1;
         this.e2 = index2;
+        this.minDistance = r;
     }
     //same steps as the rope constraint but in the opposite direction
     applyLimit(s, particlePrev, particle) {
@@ -325,6 +436,7 @@ class Radius extends CLimit {
 }
 
 class MinVel extends CLimit {
+    limitType = limitTypes.minVel;
     minVel = 1;
     constructor(min) {
         super()
@@ -342,6 +454,7 @@ class MinVel extends CLimit {
 }
 
 class MaxVel extends CLimit {
+    limitType = limitTypes.maxVel;
     maxVel = 10;
     constructor(max) {
         super()
