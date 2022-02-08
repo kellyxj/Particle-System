@@ -175,15 +175,35 @@ function main() {
       if(e.key === " ") {
         paused = !paused;
       }
-      if(e.key === "v") {
-        changeSolver(solverTypes.velVerlet);
+    });
+
+    const currentSolver = document.getElementById("currentSolver");
+    function changeSolver(solver) {
+      for(const partSys of particleSystems) {
+        partSys.solverType = solver;
+        
       }
-      if(e.key === "m") {
-        changeSolver(solverTypes.midpoint);
-      }
-      if(e.key === "i") {
-        changeSolver(solverTypes.implicitMidpoint);
-      }
+    }
+
+    const eulerButton = document.getElementById("euler");
+    const midpointButton = document.getElementById("midpoint");
+    const impMidpointButton = document.getElementById("implicitMidpoint");
+    const velVerletButton = document.getElementById("velVerlet");
+    eulerButton.addEventListener("click", (ev) => {
+      changeSolver(solverTypes.euler);
+      currentSolver.innerHTML = "euler";
+    });
+    midpointButton.addEventListener("click", (ev) => {
+      changeSolver(solverTypes.midpoint);
+      currentSolver.innerHTML = "midpoint";
+    });
+    impMidpointButton.addEventListener("click", (ev) => {
+      changeSolver(solverTypes.implicitMidpoint);
+      currentSolver.innerHTML = "implicit midpoint";
+    });
+    velVerletButton.addEventListener("click", (ev) => {
+      changeSolver(solverTypes.velVerlet);
+      currentSolver.innerHTML = "velocity verlet";
     });
 
   // Specify the color for clearing <canvas>
@@ -230,6 +250,9 @@ function main() {
   
   for(const partSys of particleSystems) {
     const folder = gui.addFolder(names[count]);
+    folder.add(partSys, "renderOn");
+    folder.add(partSys, "renderConstraints");
+    folder.add(partSys, "disableConstraints");
     count++;
     for(const force of partSys.forces) {
       switch(force.forceType) {
@@ -238,7 +261,7 @@ function main() {
           break;
         case forceTypes.wind:
           folder.add(force, "windAmount", -5, 5);
-          folder.add(force, "randAmount", -1, 1);
+          folder.add(force, "randAmount", 0, 1);
           break;
         case forceTypes.spring:
           folder.add(force, "K_spring", 0, 10);
@@ -280,11 +303,7 @@ function main() {
   tick();		
 }
 
-function changeSolver(solver) {
-  for(const partSys of particleSystems) {
-    partSys.solverType = solver;
-  }
-}
+
 
 function animate() {
   //==============================================================================  

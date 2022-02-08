@@ -6,14 +6,44 @@
     <script type="text/javascript" src="dat.gui.min.js"></script>
   </head>
   <body>
+    <div id="gui-container"></div>
     <canvas id="webgl" width="600" height="600">
     Please use a browser that supports "canvas"
     </canvas>
+    
+    <button id = "euler">euler</button>
+    <button id = "midpoint">midpoint</button>
+    <button id = "implicitMidpoint">implicit midpoint</button>
+    <button id = "velVerlet">velocity verlet</button>
+    <p >Current solver: <div id = "currentSolver">velocity verlet</div></p>
     <p>
-      wasd to move. Arrow keys to rotate the camera. Use the slider bars on the right to 
-      set the parameters for each particle system.
+      wasd to move. Arrow keys to rotate the camera. Press spacebar to pause. Use the slider bars on the right to 
+      set the parameters for each particle system. Particle systems:
     </p>
-    <div id="gui-container"></div>
+    <p>
+      1. Planets of equal mass interact gravitational while bouncing elastically off a cylindrical constraint.
+    </p>
+    <p>
+      2. Rope made from springs held together by a max separation constraint. windAmount controls wind speed, randAmount controls random variation in wind. Easy to break
+    </p>
+    <p>
+      3. Fountain that constantly emits burning fire particles.
+    </p>
+    <p>
+      4. Spring mass system. To see instability of Euler solver, set K_spring = 10, K_damp = 0, dragConst and turbulence = 0.
+    </p>
+    <p>
+      5. Tornado. Circulation effects rotation rate of tornado. Cohesion reduces the diameter of the tornado. Updraft effects the speed at which particles are moved upwards.
+    </p>
+    <p>
+      6. Rain. Water particles constantly fall from the ceiling onto a sphere constraint with K_resti = 0.
+    </p>
+    <p>
+      7. Boids. First gravConst is cohesion, which draws the boids closer together. Second gravConst is separation, which causes them to avoid neighbors.
+      AlignConst determines the rate at which boids will align their heading with their neighbors. fov limits the view of boids to within default 60 degrees
+      of their current heading. fov is only used for alignment
+    </p>
+    
     <script src="lib/webgl-utils.js"></script>
     <script src="lib/webgl-debug.js"></script>
     <script src="lib/cuon-utils.js"></script>

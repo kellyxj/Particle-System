@@ -47,10 +47,9 @@ function distance(p1, p2) {
 
 const solverTypes = {
     euler:1,
-    implicitEuler:2,
-    midpoint:3,
-    implicitMidpoint:4,
-    velVerlet:5
+    midpoint:2,
+    implicitMidpoint:3,
+    velVerlet:4
 }
 
 class ParticleSystem {
@@ -65,6 +64,11 @@ class ParticleSystem {
         this.forces = [];
         this.limits = [];
         this.vboBox = new VBObox();
+        this.renderOn = true;
+        this.renderConstraints = true;
+        this.disableConstraints = false;
+        const groundPlane = new GroundPlane();
+        this.limits.push(groundPlane);
     }
 
     add(stateVec1, stateVec2) {     //stateVec1 += stateVec2
@@ -291,7 +295,7 @@ class ParticleSystem {
 
     initCloth(gl, numParticles) {
         this.nParticles = numParticles;
-        const s = new SpringSet(.1, 1, .99);
+        const s = new SpringSet(5, 1, .99);
         for(let i = 0; i < this.nParticles; i++) {
             const p = new Particle();
             p.zPos = i+this.nParticles;
@@ -341,9 +345,9 @@ class ParticleSystem {
             p.yPos = 0;
             p.setRandomVelocity(1, [0,0,0]);
             p.zVel = 0;
-            p.colorR = .1;
-            p.colorG = .1;
-            p.colorB = .6 + .4 * Math.random();
+            p.colorR = .1 * Math.random();
+            p.colorG = .2 + .2 * Math.random();
+            p.colorB = .8 + .2 * Math.random();
             this.s1.push(p);
         }
         this.makeParticles(this.s1dot, this.nParticles);
@@ -395,6 +399,9 @@ class ParticleSystem {
         const g = new planetGrav(15, 100);
         this.forces.push(g);
 
+        const w = new Wind(0, 0);
+        this.forces.push(w);
+
         const r = new planetGrav(-50, 5);
         this.forces.push(r);
 
@@ -422,8 +429,11 @@ class ParticleSystem {
         const p5 = new Portal(-100, 100, -100, -99, 0, 200, [0,198,0]);
         this.limits.push(p5);
 
-        const p6 = new Portal(-100, 100, 99, 100, 0, 200, [0,-198,-0]);
+        const p6 = new Portal(-100, 100, 99, 100, 0, 200, [0,-198,0]);
         this.limits.push(p6);
+
+        const v = new Volume(-100, 100, -100, 100, 0, 200, 1);
+        this.limits.push(v);
         
         const min = new MinVel(2);
         this.limits.push(min);
@@ -431,8 +441,7 @@ class ParticleSystem {
         const max = new MaxVel(20);
         this.limits.push(max)   
 
-        const v = new Volume(-100, 100, -100, 100, 0, 200, 1);
-        this.limits.push(v);
+        
 
         this.modelMatrix.setTranslate(0, -15, 0);
         this.modelMatrix.scale(.01, .01, .01);
@@ -490,6 +499,11 @@ class ParticleSystem {
     }
 
     solver(g_timeStep) {
+        if(this.solverType == solverTypes.euler) {
+            this.s2 = [...this.s1];
+            this.mult(this.s1dot, g_timeStep*0.001);
+            this.add(this.s2, this.s1dot);
+        }
         if(this.solverType == solverTypes.midpoint) {
             const sM = [];
             this.makeParticles(sM, this.nParticles,0);
@@ -583,33 +597,41 @@ class ParticleSystem {
             for(const limit of this.limits) {
                 const particle = this.s2[i];
                 const particlePrev = this.s1[i];
-                limit.doLimit(this.s1, particlePrev, particle);
+                const alwaysList = [limitTypes.ageConstraint, limitTypes.maxVel, limitTypes.groundPlane];       //always execute constraints of these types
+                if(!this.disableConstraints || alwaysList.find(limType => limit.limitType == limType)) {
+                    limit.doLimit(this.s1, particlePrev, particle);
+                }
             }
         }
     }
 
     render(mvpMatrix) {
-        const vertexArray = new Float32Array(this.nParticles*7);
-        for(let i = 0; i < this.s2.length; i++) {
-            vertexArray[7*i] = this.s2[i].xPos;
-            vertexArray[7*i+1] = this.s2[i].yPos;
-            vertexArray[7*i+2] = this.s2[i].zPos;
-            vertexArray[7*i+3] = this.s2[i].wPos;
-            vertexArray[7*i+4] = this.s2[i].colorR;
-            vertexArray[7*i+5] = this.s2[i].colorG;
-            vertexArray[7*i+6] = this.s2[i].colorB;
+        if(this.renderOn) {
+            const vertexArray = new Float32Array(this.nParticles*7);
+            for(let i = 0; i < this.s2.length; i++) {
+                vertexArray[7*i] = this.s2[i].xPos;
+                vertexArray[7*i+1] = this.s2[i].yPos;
+                vertexArray[7*i+2] = this.s2[i].zPos;
+                vertexArray[7*i+3] = this.s2[i].wPos;
+                vertexArray[7*i+4] = this.s2[i].colorR;
+                vertexArray[7*i+5] = this.s2[i].colorG;
+                vertexArray[7*i+6] = this.s2[i].colorB;
+            }
+            for(const force of this.forces) {
+                force.checkRender(this.modelMatrix,mvpMatrix);
+            }
+            if(this.renderConstraints && !this.disableConstraints) {
+                for(const constraint of this.limits) {
+                    constraint.checkRender(this.modelMatrix, mvpMatrix);
+                }
+            }
+            this.vboBox.switchToMe();
+            this.vboBox.adjust(this.modelMatrix, mvpMatrix);
+            this.vboBox.vboContents = vertexArray;
+            this.vboBox.reload();
+            this.vboBox.draw();
         }
-        for(const force of this.forces) {
-            force.checkRender(this.modelMatrix,mvpMatrix);
-        }
-        for(const constraint of this.limits) {
-            constraint.checkRender(this.modelMatrix, mvpMatrix);
-        }
-        this.vboBox.switchToMe();
-        this.vboBox.adjust(this.modelMatrix, mvpMatrix);
-        this.vboBox.vboContents = vertexArray;
-        this.vboBox.reload();
-        this.vboBox.draw();
+        
         
     }
 

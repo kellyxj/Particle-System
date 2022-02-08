@@ -187,8 +187,8 @@ function makeGroundGrid() {
     var xcount = 100;			// # of lines to draw in x,y to make the grid.
       var ycount = 100;		
       var xymax	= 50.0;			// grid size; extends to cover +/-xymax in x and y.
-       var xColr = new Float32Array([1.0, 1.0, 0.3]);	// bright yellow
-       var yColr = new Float32Array([0.5, 1.0, 0.5]);	// bright green.
+       var xColr = new Float32Array([.7, .7, 1]);	// bright yellow
+       var yColr = new Float32Array([1, .2, .7]);	// bright green.
        
       // Create an (global) array to hold this ground-plane's vertices:
     var floatsPerVertex = 7;
@@ -267,9 +267,9 @@ function makeGroundGrid() {
           cubeVerts[7*i+1] = yVal;
           cubeVerts[7*i+2] = zVal;
           cubeVerts[7*i+3] = 1;
-          cubeVerts[7*i+4] = 1;
-          cubeVerts[7*i+5] = 0;
-          cubeVerts[7*i+6] = 0;
+          cubeVerts[7*i+4] = 0;
+          cubeVerts[7*i+5] = .2;
+          cubeVerts[7*i+6] = 1;
       }
       return cubeVerts;
   }

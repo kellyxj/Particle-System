@@ -310,9 +310,7 @@ class Tornado extends Forcer {
         const d = Math.sqrt(Math.max(0, p.xPos*p.xPos + p.yPos*p.yPos))+.01;
             
         if(d < 2) {
-            if(p.zPos < 80){
-                p.zfTot += this.updraft;
-            }
+            p.zfTot += this.updraft;
         }
         if(d < Math.max(10,(p.zPos * p.zPos)/500)) {
             p.xfTot += this.circulation*p.yPos/d;

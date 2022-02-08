@@ -6,10 +6,12 @@ const limitTypes = {
     ball: 4,
     cylinder: 5,
     ageConstraint: 6,
-    rope: 7,
-    radius:8,
-    minVel:9,
-    maxVel: 10
+    portal: 7,
+    rope: 8,
+    radius:9,
+    minVel:10,
+    maxVel: 11,
+    groundPlane: 12
 }
 
 class Limit {      //all other constraints are derived classes
@@ -171,7 +173,7 @@ class SphereVol extends Limit {
         }
     }
     initVbo(gl) {
-        const vertices = makeSphere(this.radius, [this.centerX, this.centerY, this.centerZ], [1, 0, 0]);
+        const vertices = makeSphere(this.radius, [this.centerX, this.centerY, this.centerZ], [0, .2, 1]);
         this.vboBox.init(gl, vertices, vertices.length/7);
         this.vboBox.drawMode = gl.LINE_LOOP;
     }
@@ -228,7 +230,7 @@ class CylinderVol extends Limit {
         }
     }
     initVbo(gl) {
-        const vertices = makeCylinder(this.radius, [this.centerX, this.centerY, this.centerZ], this.height, [1, 0, 0]);
+        const vertices = makeCylinder(this.radius, [this.centerX, this.centerY, this.centerZ], this.height, [0, .2, 1]);
         this.vboBox.init(gl, vertices, vertices.length/7);
         this.vboBox.drawMode = gl.LINE_LOOP;
     }
@@ -317,7 +319,7 @@ class Cylinder extends Limit {
 }
 
 class AgeConstraint extends Limit {
-    limitTypes = limitTypes.ageConstraint;
+    limitType = limitTypes.ageConstraint;
     maxAge = -1;
     constructor(max) {
         super();
@@ -369,7 +371,7 @@ class TornadoConstraint extends AgeConstraint {
 }
 
 class Portal extends AgeConstraint {        //default behavior: particles that moved into the portal get translated by translationVec.
-    
+    limitType = limitTypes.portal;
     constructor(xMin, xMax, yMin, yMax, zMin, zMax, translate) {
         super();
         this.xMin = xMin;
@@ -512,6 +514,22 @@ class MaxVel extends Limit {
             particle.xVel *= scaleAmount;
             particle.yVel *= scaleAmount;
             particle.zVel *= scaleAmount;
+        }
+    }
+}
+
+class GroundPlane extends Limit {
+    limitType = limitTypes.groundPlane;
+    applyLimit(s, particle, particlePrev) {
+        if(particle.zPos < 0) {
+            particle.zPos = 0;
+            particle.zVel = particlePrev.zVel;
+            if(particle.zVel < 0) {
+                particle.zVel = -particle.zVel;
+            }
+            else {
+                particle.zVel = particle.zVel;
+            }
         }
     }
 }
