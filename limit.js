@@ -4,14 +4,15 @@ const limitTypes = {
     sphereVol: 2,
     cylinderVol: 3,
     ball: 4,
-    ageConstraint: 5,
-    rope: 6,
-    radius:7,
-    minVel:8,
-    maxVel: 9
+    cylinder: 5,
+    ageConstraint: 6,
+    rope: 7,
+    radius:8,
+    minVel:9,
+    maxVel: 10
 }
 
-class CLimit {      //all other constraints are derived classes
+class Limit {      //all other constraints are derived classes
     limitType = limitTypes.none;
     targetList = [];
     renderOn = true;
@@ -49,7 +50,7 @@ class CLimit {      //all other constraints are derived classes
     }
 }
 
-class Volume extends CLimit {
+class Volume extends Limit {
     limitType = limitTypes.volume;
     xMin = -.5;   
     xMax = .5;
@@ -143,7 +144,7 @@ class Volume extends CLimit {
     }
 }
 
-class SphereVol extends CLimit {
+class SphereVol extends Limit {
     limitType = limitTypes.sphereVol;
     constructor(r,center,k) {
         super();
@@ -181,7 +182,7 @@ class SphereVol extends CLimit {
     }
 }
 
-class CylinderVol extends CLimit {
+class CylinderVol extends Limit {
     limitType = limitTypes.cylinderVol;
     constructor(r, center, h, k) {      //here, "center" means center of the bottom face of the cylinder
         super();
@@ -238,7 +239,7 @@ class CylinderVol extends CLimit {
     }
 }
 
-class Ball extends CLimit {
+class Ball extends Limit {
     limitType = limitTypes.ball;
     constructor(r, center, k) {
         super();
@@ -276,7 +277,46 @@ class Ball extends CLimit {
     }
 }
 
-class AgeConstraint extends CLimit {
+class Cylinder extends Limit {
+    limitType = limitTypes.cylinder;
+    constructor(r, center, h, k) {      //here, "center" means center of the bottom face of the cylinder
+        super();
+        this.radius = r;
+        this.height = h;
+        this.centerX = center[0];
+        this.centerY = center[1];
+        this.centerZ = center[2];
+        this.K_resti = k;
+    }
+    applyLimit(s, particlePrev, particle) {
+        const directionVec = new Vector3([particle.xPos-this.centerX, particle.yPos-this.centerY, 0]);
+        const d = Math.sqrt(directionVec.dot(directionVec));
+        if(d < this.radius && particle.zPos >= this.centerZ && particle.zPos <= this.centerZ+this.height) {
+            directionVec.normalize();
+            particle.xPos += (this.radius-d) * directionVec.elements[0];
+            particle.yPos += (this.radius-d) * directionVec.elements[1];
+
+            const reverseDirectionVec = new Vector3([-directionVec.elements[0], -directionVec.elements[1], 0]);
+            const velocityVec = new Vector3([particle.xVel, particle.yVel, 0]);
+            const dotProduct = velocityVec.dot(reverseDirectionVec);
+            particle.xVel += 2 * this.K_resti * dotProduct * directionVec.elements[0];
+            particle.yVel += 2 * this.K_resti * dotProduct * directionVec.elements[1];
+            particle.zVel += 2 * this.K_resti * dotProduct * directionVec.elements[2];
+        }
+    }
+    initVbo(gl) {
+        const vertices = makeCylinder(this.radius, [this.centerX, this.centerY, this.centerZ], this.height, [1, 1, 1]);
+        this.vboBox.init(gl, vertices, vertices.length/7);
+        this.vboBox.drawMode = gl.LINE_LOOP;
+    }
+    render(modelMatrix, mvpMatrix) {
+        this.vboBox.switchToMe();
+        this.vboBox.adjust(modelMatrix, mvpMatrix);
+        this.vboBox.draw();
+    }
+}
+
+class AgeConstraint extends Limit {
     limitTypes = limitTypes.ageConstraint;
     maxAge = -1;
     constructor(max) {
@@ -289,9 +329,14 @@ class AgeConstraint extends CLimit {
             this.emitParticle(particle);
         }
     }
-    setInitPos(pos) {
+    setInitPos(randAmount, pos) {
         this.initial = true;
         this.initialPosition = pos;
+        this.randPos = randAmount;
+    }
+    setInitVel(randAmount, vel) {
+        this.initVel = vel;
+        this.randVel = randAmount;
     }
     markAsKilled(p) {
 
@@ -304,26 +349,26 @@ class AgeConstraint extends CLimit {
 class FireConstraint extends AgeConstraint {
     emitParticle(p) {
         p.mass = 1;
-        p.setRandomPosition(1, [0,0,0]);
+        p.setRandomPosition(this.randPos, this.initialPosition);
         p.zPos = 0;
         p.colorR = 1;
         p.colorG = Math.random()*.7-.5*p.xPos*p.xPos-.5*p.yPos*p.yPos;
         p.colorB = 0;
-        p.setRandomVelocity(5, [0,0, 20]);
+        p.setRandomVelocity(this.randVel, this.initVel);
         p.age = Math.floor(Math.random() * this.maxAge);
     }
 }
 
 class TornadoConstraint extends AgeConstraint {
     emitParticle(p) {
-        p.setRandomPosition(100, [0,0,0]);
-        p.zPos = 0;
-        p.setRandomVelocity(3, [0,0,0]);
+        p.setRandomPosition(this.randPos, this.initialPosition);
+        p.zPos=0;
+        p.setRandomVelocity(this.randVel, this.initVel);
         p.age = Math.floor(Math.random() * this.maxAge);
     }
 }
 
-class Portal extends AgeConstraint {
+class Portal extends AgeConstraint {        //default behavior: particles that moved into the portal get translated by translationVec.
     
     constructor(xMin, xMax, yMin, yMax, zMin, zMax, translate) {
         super();
@@ -345,7 +390,7 @@ class Portal extends AgeConstraint {
     
     emitParticle(p) {
         p.age = 0;
-        if(this.initial) {
+        if(this.initial) {      //can use setInitPos to override default behavior. Instead, all particles that enter the portal are sent to initialPosition.
             p.xPos = this.initialPosition[0];
             p.yPos = this.initialPosition[1];
             p.zPos = this.initialPosition[2];
@@ -358,7 +403,7 @@ class Portal extends AgeConstraint {
     }
 }
 
-class Rope extends CLimit {
+class Rope extends Limit {
     limitType = limitTypes.rope;
     maxDistance = 10;
     constructor(index1, index2, length) {
@@ -396,7 +441,7 @@ class Rope extends CLimit {
     }
 }
 
-class Radius extends CLimit {
+class Radius extends Limit {
     limitType = limitTypes.radius;
     minDistance = 1;
     constructor(index1, index2, r) {
@@ -435,7 +480,7 @@ class Radius extends CLimit {
     }
 }
 
-class MinVel extends CLimit {
+class MinVel extends Limit {
     limitType = limitTypes.minVel;
     minVel = 1;
     constructor(min) {
@@ -453,7 +498,7 @@ class MinVel extends CLimit {
     }
 }
 
-class MaxVel extends CLimit {
+class MaxVel extends Limit {
     limitType = limitTypes.maxVel;
     maxVel = 10;
     constructor(max) {

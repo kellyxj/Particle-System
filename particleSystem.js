@@ -144,6 +144,8 @@ class ParticleSystem {
         this.forces.push(a);
 
         const emitter = new TornadoConstraint(1500);
+        emitter.setInitPos(50, [0,0,0]);
+        emitter.setInitVel(3,[0,0,0]);
         this.limits.push(emitter);
         
         const volume = new CylinderVol(100, [0, 0, 0], 200, 1);
@@ -185,13 +187,16 @@ class ParticleSystem {
         const t = new Turbulence(.01, 20);
         this.forces.push(t);
 
-        const w = new Wind(.5, .5);
-        this.forces.push(w);
+        const w = new Wind(.5, .1);
+        w.windDirection = new Vector4([0, -.5, .866, 0]);
+        this.forces.push(w);       
         
-        const volume = new Volume(-10, 10, -10, 10, 0, 20);
+        const volume = new Volume(-10, 10, -10, 10, 0, 20, 0);
         this.limits.push(volume);
 
         const emitter = new FireConstraint(100);
+        emitter.setInitPos(1, [0,0,0]);
+        emitter.setInitVel(5,[0,0,20]);
         this.limits.push(emitter);
 
         this.modelMatrix.setTranslate(0, 5, 0);
@@ -201,24 +206,26 @@ class ParticleSystem {
     }
 
     initSpring(gl, numParticles) {
-        //using 3 springs with an explicit solver accumulates error very quickly
+        //If using more than 20 springs, make sure to disable rendering them
         this.nParticles = numParticles;
+        const s = new SpringSet(3, 5, .4);
         for(let i = 0; i < this.nParticles; i++) {
             const p = new Particle();
             p.setRandomPosition(10, [0, 0, 10]);
             p.setRandomVelocity(1, [0,0,0]);
             this.s1.push(p);
             if(i != 0) {
-                const s = new Spring(this.s1[i].index, this.s1[i-1].index, 3, 5, .4);
-                this.forces.push(s);
+                s.makeSpring(this.s1[i].index, this.s1[i-1].index);
                 const r = new Rope(this.s1[i].index, this.s1[i-1].index, 10);
                 this.limits.push(r);
             }
             if(i > 1) {
-                const s = new Spring(this.s1[i].index, this.s1[i-2].index, 3, 5, .4);
-                this.forces.push(s);
+                s.makeSpring(this.s1[i].index, this.s1[i-2].index);
+                const r = new Rope(this.s1[i].index, this.s1[i-2].index, 10);
+                this.limits.push(r);
             }
         }
+        this.forces.push(s);
 
         this.makeParticles(this.s1dot, this.nParticles);
         this.s2 = [...this.s1];
@@ -257,7 +264,7 @@ class ParticleSystem {
             p.colorG = .3+Math.random()/2;
             p.colorB = .3+Math.random()/2;
             p.setRandomPosition(100, [0, 0, 100]);
-            p.setRandomVelocity(10, [0,0,0]);
+            p.setRandomVelocity(20, [0,0,0]);
             this.s1.push(p);
         }
 
@@ -267,11 +274,14 @@ class ParticleSystem {
 
         this.makeParticles(this.s1dot, this.nParticles);
 
-        const f = new planetGrav(10, Infinity);
+        const f = new planetGrav(20, Infinity);
         this.forces.push(f);
 
         const volume = new SphereVol(100, [0, 0, 100], 1);
         this.limits.push(volume);
+
+        const c = new Cylinder(50, [0, 0, 10], 180, 1);
+        this.limits.push(c);
 
         this.modelMatrix.setTranslate(0, 15, 0);
         this.modelMatrix.scale(.02, .02, .02);
@@ -281,18 +291,19 @@ class ParticleSystem {
 
     initCloth(gl, numParticles) {
         this.nParticles = numParticles;
+        const s = new SpringSet(.1, 1, .99);
         for(let i = 0; i < this.nParticles; i++) {
             const p = new Particle();
             p.zPos = i+this.nParticles;
             this.s1.push(p);
             if(i != 0) {
-                const s = new Spring(this.s1[i].index, this.s1[i-1].index, .0005, 1, .99);
-                s.renderOn = false;     //rendering disabled for performance
-                this.forces.push(s);
+                s.makeSpring(this.s1[i].index, this.s1[i-1].index);
                 const r = new Rope(this.s1[i].index, this.s1[i-1].index, 1.1);
                 this.limits.push(r);
             }
         }
+        s.renderOn = false;     //disable rendering springs for performance
+        this.forces.push(s);
         this.s2 = [...this.s1];
         const anchor = new Volume(0, 0, 0, 0, 2*this.nParticles-1, 2*this.nParticles-1, 0);
         anchor.targetList.push(this.s1[this.nParticles-1].index);
@@ -307,7 +318,7 @@ class ParticleSystem {
         const g = new earthGrav();
         this.forces.push(g);
 
-        const d = new Drag(.35);
+        const d = new Drag(.5);
         this.forces.push(d);
 
         const t = new Turbulence(.01, 25);
@@ -325,8 +336,6 @@ class ParticleSystem {
         this.nParticles = numParticles;
         for(let i = 0; i < this.nParticles; i++) {
             const p = new Particle();
-            //p.colorR = 0;
-            //p.colorG = 0;
             p.setRandomPosition(10, [0, 0, 10]);
             p.xPos = 0;
             p.yPos = 0;
@@ -359,7 +368,7 @@ class ParticleSystem {
         this.limits.push(ball);
 
         const a = new Portal(-10, 10, -10, 10, 0, 0, [0, 0, 0]);
-        a.setInitPos([0, 0, 19.9]);
+        a.setInitPos(0, [0, 0, 19.9]);
         this.limits.push(a);
 
         this.modelMatrix.setTranslate(0, -10, 0);

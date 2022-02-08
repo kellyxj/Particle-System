@@ -29,6 +29,8 @@ var paused = false;
 
 var worldBox = new VBObox();
 
+
+
 function main() {
 //==============================================================================
   // Retrieve <canvas> element
@@ -203,12 +205,11 @@ function main() {
   }
 
   var mvpMatrix = new Matrix4();
-
-  partSys1.initTornado(gl, 2000);
-  partSys2.initFire(gl, 1600);
-  partSys3.initPlanets(gl, 20);
+  partSys1.initPlanets(gl, 20);
+  partSys2.initCloth(gl, 50);
+  partSys3.initFire(gl, 1600);
   partSys4.initSpring(gl, 10);
-  partSys5.initCloth(gl, 50);
+  partSys5.initTornado(gl, 2000);
   partSys6.initRain(gl, 1500);
   partSys7.initBoids(gl, 400);
   particleSystems.push(partSys1);
@@ -218,6 +219,57 @@ function main() {
   particleSystems.push(partSys5);
   particleSystems.push(partSys6);
   particleSystems.push(partSys7);
+
+  const gui = new dat.GUI;
+
+  var container = document.getElementById("gui-container");
+  container.appendChild(gui.domElement);
+
+  let count = 0;
+  const names = ["planets", "cloth", "fire", "spring", "tornado", "rain", "boids"];
+  
+  for(const partSys of particleSystems) {
+    const folder = gui.addFolder(names[count]);
+    count++;
+    for(const force of partSys.forces) {
+      switch(force.forceType) {
+        case forceTypes.earthGrav:
+          folder.add(force, "gravConst", -10, 10);
+          break;
+        case forceTypes.wind:
+          folder.add(force, "windAmount", -5, 5);
+          folder.add(force, "randAmount", -1, 1);
+          break;
+        case forceTypes.spring:
+          folder.add(force, "K_spring", 0, 10);
+          folder.add(force, "restLength", 0, 10);
+          folder.add(force, "K_damp", 0, 1);
+          break;
+        case forceTypes.springSet:
+          folder.add(force, "K_spring", 0, 10);
+          folder.add(force, "restLength", 0, 10);
+          folder.add(force, "K_damp", 0, 1);
+          break;
+        case forceTypes.planetGrav:
+          folder.add(force, "gravConst", -100, 100);
+          break;
+        case forceTypes.drag:
+          folder.add(force, "dragConst", -.1, 1);
+          break;
+        case forceTypes.turbulence:
+          folder.add(force, "turbulence", 0, .01);
+          break;
+        case forceTypes.tornado:
+          folder.add(force, "circulation", 0, 1000);
+          folder.add(force, "cohesion", 0, 1000);
+          folder.add(force, "updraft", 0, 100);
+          break;
+        case forceTypes.aligner:
+          folder.add(force, "alignConst", 0, 1);
+          folder.add(force, "fov", 0, 90);
+      }
+    }
+  }
 
   var tick = function() {
     g_timeStep = animate();

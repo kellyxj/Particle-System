@@ -3,15 +3,17 @@ const forceTypes = {
     earthGrav: 1,
     wind:2,
     spring:3,
-    ager:4,
-    planetGrav:5,
-    drag:6,
-    tornado:7,
-    brownian:8,
-    aligner:9
+    springSet:4,
+    ager:5,
+    planetGrav:6,
+    drag:7,
+    turbulence:8,
+    tornado:9,
+    brownian:10,
+    aligner:11
 }
 
-class CForcer {
+class Forcer {
     forceType = forceTypes.none;
     targetList = [];        //indices of all particles that the force should be applied to
     renderOn = true;
@@ -40,7 +42,7 @@ class CForcer {
         }
     }
     render(modelMatrix, mvpMatrix) {
-
+        
     }
     addTarget(p) {
         if(!this.targetList.find(index => p.index == index)) {
@@ -55,7 +57,7 @@ class CForcer {
         }
     }
 }
-class earthGrav extends CForcer {
+class earthGrav extends Forcer {
     forceType = forceTypes.earthGrav;
     gravConst = 9.832;
     down = new Vector4([0, 0, -1, 0]);
@@ -66,24 +68,24 @@ class earthGrav extends CForcer {
     }
 }
 
-class Wind extends CForcer {
+class Wind extends Forcer {
     forceType = forceTypes.wind;
     windAmount = 10;
     windDirection = new Vector4([0, -1, 0, 0]);
-    turbulence = 1;
-    constructor(windAmount, turbulence) {
+    randAmount = 1;
+    constructor(windAmount, randAmount) {
         super();
         this.windAmount = windAmount;
-        this.turbulence = turbulence;
+        this.randAmount = randAmount;
     }
     applyForce(particle) {
-        particle.xfTot += this.windAmount * this.windDirection.elements[0] + Math.random() * this.turbulence;
-        particle.yfTot += this.windAmount * this.windDirection.elements[1] + Math.random() * this.turbulence;
-        particle.zfTot += this.windAmount * this.windDirection.elements[2] + Math.random() * this.turbulence;
+        particle.xfTot += this.windAmount * this.windDirection.elements[0] + (2*Math.random()-1) * this.randAmount;
+        particle.yfTot += this.windAmount * this.windDirection.elements[1] + (2*Math.random()-1) * this.randAmount;
+        particle.zfTot += this.windAmount * this.windDirection.elements[2] + (2*Math.random()-1) * this.randAmount;
     }
 }
 
-class Spring extends CForcer {
+class Spring extends Forcer {
     forceType = forceTypes.spring;
     K_spring = 3;
     restLength = 5;
@@ -147,9 +149,6 @@ class Spring extends CForcer {
         this.vboBox.drawMode = gl.LINES;
     }
     render(modelMatrix, mvpMatrix) {
-        if(this.render) {
-
-        }
         this.vboBox.switchToMe();
         const vertices = new Float32Array([this.position1[0], this.position1[1], this.position1[2], this.position1[3], 1, 1, 1,
                                             this.position2[0], this.position2[1], this.position2[2],this.position2[3], 1, 1, 1]);
@@ -160,7 +159,40 @@ class Spring extends CForcer {
     }
 }
 
-class Ager extends CForcer {
+class SpringSet extends Forcer {
+    forceType = forceTypes.springSet;
+    springs = [];
+    renderOn = true;
+    constructor(K_spring, restLength, K_damp) {
+        super();
+        this.K_spring = K_spring;
+        this.restLength = restLength;
+        this.K_damp = K_damp;
+    }
+    makeSpring(index1, index2) {
+        const s = new Spring(index1, index2, this.K_spring, this.restLength, this.K_damp);
+        this.springs.push(s);
+    }
+    calcForce(s) {
+        for(const spring of this.springs) {
+            spring.calcForce(s);
+        }
+    }
+    initVbo(gl) {
+        for(const spring of this.springs) {
+            spring.initVbo(gl);
+        }
+    }
+    render(modelMatrix, mvpMatrix) {
+        if(this.renderOn) {
+            for(const spring of this.springs) {
+                spring.render(modelMatrix, mvpMatrix);
+            }
+        }
+    }
+}
+
+class Ager extends Forcer {
     forceType = forceTypes.ager;
     applyForce(particle) {
         this.setAge(particle);
@@ -185,16 +217,16 @@ class Burner extends Ager {
         }
     }
     setColor(particle) {
-        if(particle.colorR > .4) {
+        if(particle.colorR > .2) {
             particle.colorR *= .99;
         }
-        if(particle.colorG > .05) {
+        if(particle.colorG > .01) {
             particle.colorG *= .98;
         }
     }
 }
 
-class planetGrav extends CForcer {
+class planetGrav extends Forcer {
     forceType = forceTypes.planetGrav;
     gravConst = 6.674e-11;
     maxRange = Infinity;
@@ -222,7 +254,7 @@ class planetGrav extends CForcer {
     }
 }
 
-class Drag extends CForcer {        //laminar flow: drag force proportional to -velocity
+class Drag extends Forcer {        //laminar flow: drag force proportional to -velocity
     forceType = forceTypes.drag;
     dragConst = .05;
     constructor(dragAmount) {
@@ -236,9 +268,9 @@ class Drag extends CForcer {        //laminar flow: drag force proportional to -
     }
 }
 
-class Turbulence extends CForcer {      //turbulent flow: drag force proportional to -velocity^2
-    forceType = forceTypes.drag;
-    dragConst = .01;
+class Turbulence extends Forcer {      //turbulent flow: drag force proportional to -velocity^2
+    forceType = forceTypes.turbulence;
+    turbulence = .01;
     minVel = 100;
     constructor(dragAmount, minVel) {
         super();
@@ -248,45 +280,48 @@ class Turbulence extends CForcer {      //turbulent flow: drag force proportiona
     applyForce(p) {
         if (p.xVel * p.xVel + p.yVel * p.yVel + p.zVel * p.zVel > this.minVel){
             if(p.xVel > 0) {
-                p.xfTot -= (this.dragConst * p.xVel * p.xVel +.0001);
+                p.xfTot -= (this.turbulence * p.xVel * p.xVel +.0001);
             }
             else {
-                p.xfTot += (this.dragConst * p.xVel * p.xVel +.0001);
+                p.xfTot += (this.turbulence * p.xVel * p.xVel +.0001);
             }
             if(p.yVel > 0) {
-                p.yfTot -= (this.dragConst * p.yVel * p.yVel +.0001);
+                p.yfTot -= (this.turbulence * p.yVel * p.yVel +.0001);
             }
             else {
-                p.yfTot += (this.dragConst * p.yVel * p.yVel +.0001);
+                p.yfTot += (this.turbulence * p.yVel * p.yVel +.0001);
             }
             if(p.zVel > 0) {
-                p.zfTot -= (this.dragConst * p.zVel * p.zVel +.0001);
+                p.zfTot -= (this.turbulence * p.zVel * p.zVel +.0001);
             }
             else {
-                p.zfTot += (this.dragConst * p.zVel * p.zVel +.0001);
+                p.zfTot += (this.turbulence * p.zVel * p.zVel +.0001);
             }
         }
     }
 }
 
-class Tornado extends CForcer {
+class Tornado extends Forcer {
     forceType = forceTypes.tornado;
+    cohesion = 500;
+    updraft = 30;
+    circulation = 100;
     applyForce(p) {
         const d = Math.sqrt(Math.max(0, p.xPos*p.xPos + p.yPos*p.yPos))+.01;
             
         if(d < 2) {
             if(p.zPos < 80){
-                p.zfTot += 30;
+                p.zfTot += this.updraft;
             }
         }
         if(d < Math.max(10,(p.zPos * p.zPos)/500)) {
-            p.xfTot += 100*p.yPos/d;
-            p.yfTot -= 100*p.xPos/d;
-            p.zfTot += 500/d;
+            p.xfTot += this.circulation*p.yPos/d;
+            p.yfTot -= this.circulation*p.xPos/d;
+            p.zfTot += 16*this.updraft/d;
         }
         else {
-            p.xfTot -= 500*p.xPos/d;
-            p.yfTot -= 500*p.yPos/d;
+            p.xfTot -= this.cohesion*p.xPos/d;
+            p.yfTot -= this.cohesion*p.yPos/d;
         }
         p.zfTot += 1/(p.xPos+p.yPos+.01)+4.2021;
         if(p.zPos < 5) {
@@ -295,7 +330,7 @@ class Tornado extends CForcer {
     }
 }
 
-class Brownian extends CForcer {
+class Brownian extends Forcer {
     forceType = forceTypes.brownian;
     frequency = .1;
     maxForce = .1;
@@ -313,7 +348,7 @@ class Brownian extends CForcer {
     }
 }
 
-class Aligner extends CForcer{
+class Aligner extends Forcer{
     forceType = forceTypes.aligner;
     alignConst = 0;
     maxRange = Infinity;

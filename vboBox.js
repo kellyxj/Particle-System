@@ -160,7 +160,7 @@ class VBObox {
             this.ModelMat.elements);
 
         this.mvpMatrix.setIdentity();
-        this.mvpMatrix.set(mvpMatrix); //find a way to pass this value from main
+        this.mvpMatrix.set(mvpMatrix);
             
         this.gl.uniformMatrix4fv(this.u_MvpMatrixLoc, false, this.mvpMatrix.elements);
     }
@@ -386,13 +386,10 @@ function makeSphere(r, center, colorVec) {
             // Cylinder center at origin, encircles z axis, radius 1, top/bottom at z= +/-1.
             //
             
-             var topColr = new Float32Array([0.8, 0.8, 0.0]);	// light yellow top,
-             var walColr = new Float32Array([0.2, 0.6, 0.2]);	// dark green walls,
-             var botColr = new Float32Array([0.2, 0.3, 0.7]);	// light blue bottom,
-             var ctrColr = new Float32Array(colorVec); // near black end-cap centers,
-             var errColr = new Float32Array([1.0, 0.2, 0.2]);	// Bright-red trouble color.
             
-             var capVerts = 15;	// # of vertices around the topmost 'cap' of the shape
+             var errColr = new Float32Array(colorVec);	// Bright-red trouble color.
+            
+             var capVerts = 50;	// # of vertices around the topmost 'cap' of the shape
              var topRadius = r;		// radius of top of cylinder (bottom is always 1.0)
              var floatsPerVertex = 7;
              // Create a (global) array to hold all of this cylinder's vertices;
